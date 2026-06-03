@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>MEDDIC Discovery Workspace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #05060a;
+            --bg-elevated: #111321;
+            --bg-elevated-soft: #15172a;
+            --accent: #4fd1c5;
+            --accent-soft: rgba(79, 209, 197, 0.1);
+            --accent-strong: #22c1b1;
+            --danger: #f56565;
+            --text: #f7fafc;
+            --muted: #a0aec0;
+            --border-subtle: #2d3748;
+            --border-strong: #4a5568;
+            --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.55);
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-pill: 999px;
+            --transition-fast: 180ms ease-out;
+            --transition-med: 260ms ease;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #192036 0, #05060a 52%);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            padding: 32px 20px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 1200px;
+            background: linear-gradient(135deg, rgba(23, 25, 45, 0.96), rgba(7, 8, 18, 0.98));
+            border-radius: 32px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            padding: 22px 24px 26px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shell::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background:
+                radial-gradient(circle at top left, rgba(79, 209, 197, 0.08), transparent 55%),
+                radial-gradient(circle at bottom right, rgba(96, 165, 250, 0.08), transparent 55%);
+            mix-blend-mode: screen;
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        .chrome {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chrome-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .chrome-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, rgba(148, 163, 184, 0.18));
+            opacity: 0.55;
+        }
+
+        .badge {
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: var(--radius-pill);
+            background: linear-gradient(90deg, rgba(79, 209, 197, 0.16), rgba(129, 140, 248, 0.06));
+            color: var(--accent);
+            border: 1px solid rgba(79, 209, 197, 0.4);
+        }
+
+        .header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .title-block {
+            max-width: 60%;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            letter-spacing: 0.02em;
+        }
+
+        .subtitle {
+            margin: 0;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .subtitle strong {
+            color: var(--accent-strong);
+            font-weight: 600;
+        }
+
+        .hint-chip {
+            font-size: 11px;
+            padding: 7px 11px;
+            background: rgba(15, 23, 42, 0.85);
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            backdrop-filter: blur(10px);
+        }
+
+        .hint-chip span.key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            font-size: 10px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .hint-chip span.dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.6);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr);
+            gap: 18px;
+            align-items: stretch;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .title-block {
+                max-width: 100%;
+            }
+        }
+
+        .panel {
+            background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.19), transparent 58%),
+                        radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.92), rgba(7, 8, 18, 0.98));
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            padding: 16px 16px 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.04),
+                rgba(15, 23, 42, 0.9)
+            );
+            mix-blend-mode: soft-light;
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.11em;
+            color: var(--muted);
+        }
+
+        .panel-caption {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .pill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .pill {
+            padding: 4px 9px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .pill strong {
+            color: #e2e8f0;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #e2e8f0;
+        }
+
+        .field-hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .field-row {
+            margin-bottom: 12px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.95), rgba(3, 7, 18, 0.96));
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+                        transform 120ms ease-out;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(148, 163, 184, 0.75);
+        }
+
+        input[type="text"]:focus {
+            border-color: rgba(79, 209, 197, 0.85);
+            box-shadow:
+                0 0 0 1px rgba(79, 209, 197, 0.8),
+                0 0 0 10px rgba(79, 209, 197, 0.12);
+            transform: translateY(-1px);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 230px;
+            resize: vertical;
+            padding: 12px 12px 32px;
+            border-radius: 14px;
+            border: 1px solid var(--border-subtle);
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.95), rgba(3, 7, 18, 0.96));
+            color: var(--text);
+            font-size: 13px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                "Liberation Mono", "Courier New", monospace;
+            line-height: 1.5;
+            outline: none;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+                        background var(--transition-fast), transform 120ms ease-out;
+        }
+
+        textarea::placeholder {
+            color: rgba(148, 163, 184, 0.75);
+        }
+
+        textarea:focus {
+            border-color: rgba(79, 209, 197, 0.85);
+            box-shadow:
+                0 0 0 1px rgba(79, 209, 197, 0.8),
+                0 0 0 10px rgba(79, 209, 197, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .char-count {
+            opacity: 0.75;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            appearance: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        #analyse-btn {
+            position: relative;
+            padding: 9px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #0b1120;
+            background: linear-gradient(135deg, var(--accent-strong), #60a5fa);
+            box-shadow:
+                0 8px 18px rgba(37, 99, 235, 0.45),
+                0 0 0 1px rgba(15, 23, 42, 0.9);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 140ms ease-out, box-shadow 140ms ease-out,
+                        filter 120ms ease-out, opacity 120ms ease-out;
+        }
+
+        #analyse-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+            box-shadow:
+                0 14px 30px rgba(37, 99, 235, 0.6),
+                0 0 0 1px rgba(15, 23, 42, 0.9);
+        }
+
+        #analyse-btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow:
+                0 4px 12px rgba(37, 99, 235, 0.5),
+                0 0 0 1px rgba(15, 23, 42, 0.9);
+        }
+
+        #analyse-btn:disabled {
+            opacity: 0.7;
+            cursor: default;
+            box-shadow:
+                0 0 0 1px rgba(15, 23, 42, 0.9),
+                0 0 0 rgba(0, 0, 0, 0);
+        }
+
+        #analyse-btn span.icon {
+            display: inline-flex;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-size: 11px;
+        }
+
+        #analyse-btn span.label {
+            position: relative;
+            top: 0.5px;
+        }
+
+        /* Output + staged views */
+        .output-shell {
+            position: relative;
+        }
+
+        .output-stage {
+            position: relative;
+            border-radius: var(--radius-md);
+            padding: 12px 12px 10px;
+            background:
+                radial-gradient(circle at top left, rgba(79, 209, 197, 0.18), transparent 58%),
+                radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.95), rgba(3, 7, 18, 0.98));
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            min-height: 240px;
+            overflow: hidden;
+        }
+
+        .output-stage::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
+            mix-blend-mode: soft-light;
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
+        .output-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 6px;
+            padding: 32px 16px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .output-placeholder-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-bottom: 2px;
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .output-placeholder-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+            max-width: 260px;
+        }
+
+        .output-placeholder-row {
+            height: 5px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(51, 65, 85, 0.8), rgba(30, 64, 175, 0.9));
+            opacity: 0.35;
+        }
+
+        .output-main,
+        .output-flags {
+            position: relative;
+            opacity: 0;
+            transform: translateY(4px);
+            pointer-events: none;
+            transition: opacity var(--transition-med), transform var(--transition-med);
+        }
+
+        .output-main.visible,
+        .output-flags.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .output-main {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 10px;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+
+        .category-card {
+            position: relative;
+            border-radius: 12px;
+            padding: 9px 10px 10px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .category-name {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.96);
+        }
+
+        .category-chip {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            color: var(--muted);
+        }
+
+        .category-body {
+            font-size: 12px;
+            color: rgba(226, 232, 240, 0.94);
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .category-empty {
+            color: rgba(148, 163, 184, 0.9);
+            font-style: italic;
+        }
+
+        .flags-shell {
+            margin-top: 10px;
+            padding: 8px 10px 8px;
+            border-radius: 10px;
+            background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.1), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(79, 209, 197, 0.12), transparent 60%),
+                        rgba(15, 23, 42, 0.98);
+            border: 1px dashed rgba(248, 113, 113, 0.85);
+            font-size: 12px;
+            color: rgba(252, 165, 165, 0.96);
+        }
+
+        .flags-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .flags-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.13em;
+        }
+
+        .flags-pill {
+            padding: 2px 7px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(248, 113, 113, 0.95);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(254, 202, 202, 0.96);
+        }
+
+        .flag-item {
+            padding-top: 4px;
+            border-top: 1px dashed rgba(248, 113, 113, 0.5);
+            margin-top: 4px;
+        }
+
+        .flag-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .flag-text {
+            margin-top: 2px;
+            font-size: 11px;
+            color: rgba(254, 202, 202, 0.96);
+        }
+
+        .flag-empty {
+            font-size: 11px;
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        /* Prescription CTA + output */
+        .prescription-cta {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(148, 163, 184, 0.25);
+            display: none;
+            justify-content: flex-end;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity var(--transition-med), transform var(--transition-med);
+        }
+
+        .prescription-cta.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #prescription-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(129, 140, 248, 0.65);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out;
+        }
+
+        #prescription-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: rgba(165, 180, 252, 0.9);
+            box-shadow: 0 10px 22px rgba(79, 70, 229, 0.35);
+        }
+
+        #prescription-btn:disabled {
+            opacity: 0.65;
+            cursor: default;
+        }
+
+        #prescription-btn span.icon {
+            display: inline-flex;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(129, 140, 248, 0.18);
+            align-items: center;
+            justify-content: center;
+            color: #c4b5fd;
+            font-size: 10px;
+        }
+
+        .export-cta {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(96, 165, 250, 0.35);
+            display: none;
+            justify-content: flex-end;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity var(--transition-med), transform var(--transition-med);
+        }
+
+        .export-cta.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #export-pdf-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #0b1120;
+            background: linear-gradient(135deg, #60a5fa, #38bdf8);
+            box-shadow:
+                0 8px 18px rgba(14, 116, 144, 0.35),
+                0 0 0 1px rgba(15, 23, 42, 0.9);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 140ms ease-out, box-shadow 140ms ease-out, filter 120ms ease-out;
+        }
+
+        #export-pdf-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+            box-shadow:
+                0 12px 24px rgba(14, 116, 144, 0.48),
+                0 0 0 1px rgba(15, 23, 42, 0.9);
+        }
+
+        #export-pdf-btn:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        #export-pdf-btn span.icon {
+            display: inline-flex;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            align-items: center;
+            justify-content: center;
+            color: #7dd3fc;
+            font-size: 10px;
+        }
+
+        .prescription-panel {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(129, 140, 248, 0.35);
+            display: none;
+        }
+
+        .prescription-panel.visible {
+            display: block;
+        }
+
+        .prescription-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .prescription-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #c4b5fd;
+        }
+
+        .prescription-caption {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .prescription-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .prescription-section {
+            border-radius: 12px;
+            padding: 10px 11px 11px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(129, 140, 248, 0.45);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 320ms ease, transform 320ms ease;
+        }
+
+        .prescription-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .prescription-section:nth-child(1) { border-left: 3px solid #818cf8; }
+        .prescription-section:nth-child(2) { border-left: 3px solid var(--accent-strong); }
+        .prescription-section:nth-child(3) { border-left: 3px solid #60a5fa; }
+
+        .prescription-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.96);
+            margin-bottom: 6px;
+        }
+
+        .prescription-section-body {
+            font-size: 12px;
+            line-height: 1.55;
+            color: rgba(226, 232, 240, 0.94);
+            white-space: pre-wrap;
+        }
+
+        .prescription-section-body ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .prescription-section-body li {
+            margin-bottom: 4px;
+        }
+
+        .prescription-section-body li:last-child {
+            margin-bottom: 0;
+        }
+
+        .prescription-error {
+            margin-top: 8px;
+            padding: 6px 10px;
+            border-radius: 9px;
+            border: 1px solid rgba(248, 113, 113, 0.8);
+            background: rgba(127, 29, 29, 0.92);
+            font-size: 11px;
+            color: #fee2e2;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.88), rgba(3, 7, 18, 0.98));
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-med);
+            z-index: 4;
+        }
+
+        body.loading .loading-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        body.loading .output-shell {
+            filter: blur(1px) saturate(0.9);
+        }
+
+        .loading-card[data-mode] {
+            display: none;
+        }
+
+        body.loading-meddic .loading-card[data-mode="meddic"],
+        body.loading-prescription .loading-card[data-mode="prescription"] {
+            display: block;
+        }
+
+        .loading-card {
+            padding: 14px 16px 12px;
+            border-radius: var(--radius-md);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(79, 209, 197, 0.7);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+            min-width: 260px;
+        }
+
+        .loading-headline {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .loading-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .loading-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .loading-step {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: rgba(203, 213, 225, 0.96);
+        }
+
+        .loading-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(79, 209, 197, 0.8);
+            box-shadow: 0 0 0 1px rgba(15, 23, 42, 1);
+        }
+
+        .loading-step.active .loading-dot {
+            background: radial-gradient(circle at 30% 30%, #ecfeff, var(--accent-strong));
+            box-shadow:
+                0 0 0 1px rgba(15, 23, 42, 1),
+                0 0 0 4px rgba(79, 209, 197, 0.45);
+        }
+
+        .loading-meter {
+            position: relative;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(30, 64, 175, 0.5);
+            overflow: hidden;
+        }
+
+        .loading-meter-bar {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, var(--accent-strong), #60a5fa);
+            transform-origin: left;
+            animation: sweep 1.4s ease-in-out infinite;
+        }
+
+        @keyframes sweep {
+            0% {
+                transform: scaleX(0.05);
+                opacity: 0.2;
+            }
+            40% {
+                transform: scaleX(0.7);
+                opacity: 0.85;
+            }
+            100% {
+                transform: scaleX(1);
+                opacity: 0.3;
+            }
+        }
+
+        /* Error state */
+        .error-banner {
+            margin-top: 8px;
+            padding: 6px 10px;
+            border-radius: 9px;
+            border: 1px solid rgba(248, 113, 113, 0.8);
+            background: rgba(127, 29, 29, 0.92);
+            font-size: 11px;
+            color: #fee2e2;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        @media print {
+            body {
+                background: #fff !important;
+                color: #0f172a !important;
+                padding: 0 !important;
+            }
+
+            .shell {
+                max-width: none;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+                background: #fff !important;
+            }
+
+            .shell::before {
+                display: none;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .layout {
+                display: block;
+            }
+
+            .input-panel {
+                display: none !important;
+            }
+
+            .output-shell {
+                filter: none !important;
+            }
+
+            .panel::before {
+                display: none;
+            }
+
+            .panel {
+                border: none;
+                background: #fff !important;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            .output-stage {
+                border: none;
+                background: #fff !important;
+                min-height: auto;
+                padding: 0;
+            }
+
+            .output-stage::before {
+                display: none;
+            }
+
+            #output-placeholder {
+                display: none !important;
+            }
+
+            .output-main,
+            .output-flags,
+            .prescription-panel.visible,
+            .prescription-section {
+                display: block !important;
+                opacity: 1 !important;
+                transform: none !important;
+                pointer-events: auto !important;
+            }
+
+            .prescription-error {
+                display: none !important;
+            }
+
+            .print-header {
+                margin-bottom: 18px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #0f172a;
+            }
+
+            .print-header h1 {
+                margin: 0 0 4px;
+                font-size: 22px;
+                color: #0f172a;
+            }
+
+            .print-header p {
+                margin: 0;
+                font-size: 12px;
+                color: #475569;
+            }
+
+            .print-section-label {
+                font-size: 14px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: #0f172a;
+                margin: 16px 0 10px;
+                page-break-after: avoid;
+            }
+
+            .category-card,
+            .flags-shell,
+            .prescription-section {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                border: 1px solid #cbd5e1 !important;
+                background: #fff !important;
+                color: #0f172a !important;
+                box-shadow: none;
+            }
+
+            .category-name,
+            .prescription-section-title,
+            .flags-title {
+                color: #0f172a !important;
+            }
+
+            .category-body,
+            .prescription-section-body,
+            .flag-text {
+                color: #1e293b !important;
+            }
+
+            .category-chip,
+            .flags-pill {
+                border-color: #94a3b8 !important;
+                color: #475569 !important;
+            }
+
+            .flags-shell {
+                border-style: solid !important;
+                border-color: #cbd5e1 !important;
+            }
+
+            .flag-text,
+            .flags-shell {
+                color: #1e293b !important;
+            }
+
+            .prescription-panel.visible {
+                margin-top: 0;
+                padding-top: 0;
+                border-top: none;
+                page-break-before: always;
+            }
+
+            .prescription-panel.visible::before {
+                content: "Next Steps";
+                display: block;
+                font-size: 14px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: #0f172a;
+                margin-bottom: 12px;
+            }
+
+            .prescription-header {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div id="print-header" class="print-only print-header">
+            <h1>MEDDIC Discovery Tool</h1>
+            <p id="print-subhead"></p>
+        </div>
+
+        <div class="chrome no-print">
+            <div class="chrome-dots">
+                <div class="chrome-dot"></div>
+                <div class="chrome-dot"></div>
+                <div class="chrome-dot"></div>
+            </div>
+            <div class="badge">MEDDIC Discovery Workspace</div>
+        </div>
+
+        <div class="header-main no-print">
+            <div class="title-block">
+                <h1>Qualify deals from raw discovery notes.</h1>
+                <p class="subtitle">
+                    Paste call notes or meeting fragments on the left. We’ll reorganise everything
+                    into a <strong>MEDDIC qualification snapshot</strong> so sales engineers can see
+                    where they’re strong, what’s missing, and where to push next.
+                </p>
+            </div>
+            <div>
+                <div class="hint-chip">
+                    <span class="key">1</span> Paste notes
+                    <span class="dot"></span>
+                    <span class="key">2</span> Analyse
+                    <span class="dot"></span>
+                    <span class="key">3</span> Review flags
+                </div>
+            </div>
+        </div>
+
+        <div class="layout">
+            <!-- Input panel -->
+            <section class="panel input-panel">
+                <div class="panel-header no-print">
+                    <div>
+                        <div class="panel-title">Discovery notes</div>
+                        <div class="panel-caption">Free-form notes from calls, demos, and emails.</div>
+                    </div>
+                </div>
+
+                <div style="position: relative; z-index: 1;">
+                    <div class="field-row">
+                        <label for="prospect-name">Prospect / account name</label>
+                        <p class="field-hint">
+                            Shown on your printed export and suggested as the PDF filename when you save.
+                        </p>
+                        <input
+                            id="prospect-name"
+                            type="text"
+                            spellcheck="false"
+                            placeholder="ACME Corp"
+                        />
+                    </div>
+
+                    <label for="notes">Where should I paste notes?</label>
+                    <p class="field-hint">
+                        Drop in unstructured notes or a call transcript. We’ll separate it into
+                        Metrics, Economic Buyer, Decision Criteria &amp; more.
+                    </p>
+                    <textarea
+                        id="notes"
+                        spellcheck="false"
+                        placeholder="Example&#10;- Met with ACME’s VP of Ops and Director of IT...&#10;- They’re targeting a 20% reduction in onboarding time...&#10;- Security review goes through their central architecture council every quarter...&#10;- Champion is strongly in favour but needs the CFO to sign off..."
+                    ></textarea>
+
+                    <div class="input-footer">
+                        <div>Best for 1–3 pages of notes.</div>
+                        <div class="char-count" id="char-count">0 characters</div>
+                    </div>
+
+                    <div class="action-row">
+                        <button id="analyse-btn" type="button">
+                            <span class="icon">▶</span>
+                            <span class="label">Analyse notes</span>
+                        </button>
+                    </div>
+
+                    <div id="error-banner" class="error-banner" style="display: none;"></div>
+                </div>
+            </section>
+
+            <!-- Output panel -->
+            <section class="panel output-shell" id="print-content">
+                <div class="panel-header no-print">
+                    <div>
+                        <div class="panel-title">MEDDIC view</div>
+                        <div class="panel-caption">Clean snapshot plus risk &amp; ambiguity flags.</div>
+                    </div>
+                    <div class="pill-group">
+                        <div class="pill">
+                            <strong>MEDDIC</strong> coverage map
+                        </div>
+                        <div class="pill">Metrics · Economic Buyer · Decision Criteria</div>
+                    </div>
+                </div>
+
+                <div class="output-stage">
+                    <!-- Initial placeholder -->
+                    <div id="output-placeholder" class="output-placeholder no-print">
+                        <div class="output-placeholder-icon">⌘</div>
+                        <div>Run an analysis to see this opportunity laid out by MEDDIC.</div>
+                        <div class="output-placeholder-rows">
+                            <div class="output-placeholder-row"></div>
+                            <div class="output-placeholder-row" style="width: 80%;"></div>
+                            <div class="output-placeholder-row" style="width: 45%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main structured output -->
+                    <div id="output-main" class="output-main"></div>
+
+                    <!-- Secondary flags / risk band -->
+                    <div id="output-flags" class="output-flags"></div>
+
+                    <p class="print-only print-section-label">MEDDIC Qualification</p>
+
+                    <div id="prescription-cta" class="prescription-cta no-print">
+                        <button id="prescription-btn" type="button">
+                            <span class="icon">✦</span>
+                            <span class="label">Get prescription</span>
+                        </button>
+                    </div>
+
+                    <div id="prescription-panel" class="prescription-panel">
+                        <div class="prescription-header">
+                            <div>
+                                <div class="prescription-title">SE prescription</div>
+                                <div class="prescription-caption">Deal read, demo plan, and market context.</div>
+                            </div>
+                        </div>
+                        <div id="prescription-sections" class="prescription-sections"></div>
+                        <div id="prescription-error" class="prescription-error no-print" style="display: none;"></div>
+                    </div>
+
+                    <div id="export-cta" class="export-cta no-print">
+                        <button id="export-pdf-btn" type="button">
+                            <span class="icon">⎙</span>
+                            <span class="label">Export PDF</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Loading overlay -->
+        <div class="loading-overlay no-print">
+            <div class="loading-card" data-mode="meddic">
+                <div class="loading-headline">Analysing discovery notes…</div>
+                <div class="loading-sub">
+                    Parsing statements against each MEDDIC dimension and surfacing overlaps.
+                </div>
+                <div class="loading-timeline">
+                    <div class="loading-step active">
+                        <div class="loading-dot"></div>
+                        <div>Identify signals in your raw notes.</div>
+                    </div>
+                    <div class="loading-step active">
+                        <div class="loading-dot"></div>
+                        <div>Map each signal to MEDDIC categories.</div>
+                    </div>
+                    <div class="loading-step">
+                        <div class="loading-dot"></div>
+                        <div>Highlight gaps and ambiguous areas.</div>
+                    </div>
+                </div>
+                <div class="loading-meter">
+                    <div class="loading-meter-bar"></div>
+                </div>
+            </div>
+            <div class="loading-card" data-mode="prescription">
+                <div class="loading-headline">Building your prescription…</div>
+                <div class="loading-sub">
+                    Translating MEDDIC signals into a demo plan and market narrative.
+                </div>
+                <div class="loading-timeline">
+                    <div class="loading-step active">
+                        <div class="loading-dot"></div>
+                        <div>Synthesising deal overview from qualification data.</div>
+                    </div>
+                    <div class="loading-step active">
+                        <div class="loading-dot"></div>
+                        <div>Mapping pain points to demo narrative arc.</div>
+                    </div>
+                    <div class="loading-step">
+                        <div class="loading-dot"></div>
+                        <div>Adding competitive and industry context.</div>
+                    </div>
+                </div>
+                <div class="loading-meter">
+                    <div class="loading-meter-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const notesEl = document.getElementById('notes');
+        const prospectNameEl = document.getElementById('prospect-name');
+        const charCountEl = document.getElementById('char-count');
+        const analyseBtn = document.getElementById('analyse-btn');
+        const errorBanner = document.getElementById('error-banner');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputMain = document.getElementById('output-main');
+        const outputFlags = document.getElementById('output-flags');
+        const prescriptionCta = document.getElementById('prescription-cta');
+        const prescriptionBtn = document.getElementById('prescription-btn');
+        const prescriptionPanel = document.getElementById('prescription-panel');
+        const prescriptionSections = document.getElementById('prescription-sections');
+        const prescriptionError = document.getElementById('prescription-error');
+        const exportCta = document.getElementById('export-cta');
+        const exportPdfBtn = document.getElementById('export-pdf-btn');
+        const printSubheadEl = document.getElementById('print-subhead');
+
+        let currentMeddic = null;
+        let currentPrescription = null;
+
+        function setLoading(mode) {
+            document.body.classList.remove('loading', 'loading-meddic', 'loading-prescription');
+            if (mode) {
+                document.body.classList.add('loading', 'loading-' + mode);
+            }
+        }
+
+        function resetPrescription() {
+            currentMeddic = null;
+            currentPrescription = null;
+            prescriptionCta.classList.remove('visible');
+            prescriptionPanel.classList.remove('visible');
+            prescriptionSections.innerHTML = '';
+            prescriptionError.style.display = 'none';
+            prescriptionError.textContent = '';
+            exportCta.classList.remove('visible');
+        }
+
+        function updatePrintHeader() {
+            const prospectName = prospectNameEl.value.trim();
+            const exportDate = new Date().toISOString().slice(0, 10);
+            if (prospectName) {
+                printSubheadEl.textContent = `${prospectName} · ${exportDate}`;
+            } else {
+                printSubheadEl.textContent = `Sales Engineering Opportunity Brief · ${exportDate}`;
+            }
+        }
+
+        function updateCharCount() {
+            const len = notesEl.value.length;
+            charCountEl.textContent = len === 1 ? '1 character' : len + ' characters';
+        }
+
+        notesEl.addEventListener('input', updateCharCount);
+        updateCharCount();
+
+        async function runAnalysis() {
+            const notes = notesEl.value.trim();
+            errorBanner.style.display = 'none';
+            errorBanner.textContent = '';
+
+            if (!notes) {
+                errorBanner.textContent = 'Add some discovery notes first so we have something to analyse.';
+                errorBanner.style.display = 'block';
+                return;
+            }
+
+            analyseBtn.disabled = true;
+            setLoading('meddic');
+
+            try {
+                const res = await fetch('/notes-cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(data.result);
+                } catch (parseErr) {
+                    console.error('Failed to parse JSON:', data.result);
+                    throw new Error('Unable to interpret model response. Check the prompt or try again.');
+                }
+
+                renderOutputs(parsed);
+            } catch (err) {
+                console.error(err);
+                errorBanner.textContent = 'Error: ' + err.message;
+                errorBanner.style.display = 'block';
+            } finally {
+                setLoading(null);
+                analyseBtn.disabled = false;
+            }
+        }
+
+        function renderOutputs(parsed) {
+            resetPrescription();
+            currentMeddic = parsed;
+
+            // Clear placeholder and previous content
+            outputPlaceholder.style.display = 'none';
+            outputMain.innerHTML = '';
+            outputMain.classList.remove('visible');
+            outputFlags.innerHTML = '';
+            outputFlags.classList.remove('visible');
+
+            // Build main MEDDIC cards
+            const flags = [];
+
+            for (const [category, values] of Object.entries(parsed || {})) {
+                const card = document.createElement('article');
+                card.className = 'category-card';
+
+                const header = document.createElement('div');
+                header.className = 'category-header';
+
+                const name = document.createElement('div');
+                name.className = 'category-name';
+                name.textContent = category;
+
+                const chip = document.createElement('div');
+                chip.className = 'category-chip';
+                chip.textContent = values && values.content && values.content.trim()
+                    ? 'Captured from discovery'
+                    : 'No clear evidence yet';
+
+                header.appendChild(name);
+                header.appendChild(chip);
+
+                const body = document.createElement('div');
+                body.className = 'category-body';
+
+                const contentText = values && typeof values.content === 'string'
+                    ? values.content.trim()
+                    : '';
+
+                if (contentText) {
+                    body.textContent = contentText;
+                } else {
+                    const span = document.createElement('span');
+                    span.className = 'category-empty';
+                    span.textContent = 'No explicit signals captured in the current notes.';
+                    body.appendChild(span);
+                }
+
+                card.appendChild(header);
+                card.appendChild(body);
+                outputMain.appendChild(card);
+
+                if (values && values.flag && values.flag.trim()) {
+                    flags.push({
+                        category,
+                        text: values.flag.trim()
+                    });
+                }
+            }
+
+            // Fade in the main output immediately
+            requestAnimationFrame(() => {
+                outputMain.classList.add('visible');
+            });
+
+            // Build secondary "flags" strip – delayed a touch for a staged reveal
+            if (flags.length === 0) {
+                const shell = document.createElement('div');
+                shell.className = 'flags-shell';
+
+                const header = document.createElement('div');
+                header.className = 'flags-header';
+
+                const title = document.createElement('div');
+                title.className = 'flags-title';
+                title.textContent = 'Flags & gaps';
+
+                const pill = document.createElement('div');
+                pill.className = 'flags-pill';
+                pill.textContent = 'Clean pass';
+
+                header.appendChild(title);
+                header.appendChild(pill);
+
+                const body = document.createElement('div');
+                body.className = 'flag-empty';
+                body.textContent = 'No overlaps or missing MEDDIC dimensions were flagged from this set of notes.';
+
+                shell.appendChild(header);
+                shell.appendChild(body);
+                outputFlags.appendChild(shell);
+            } else {
+                const shell = document.createElement('div');
+                shell.className = 'flags-shell';
+
+                const header = document.createElement('div');
+                header.className = 'flags-header';
+
+                const title = document.createElement('div');
+                title.className = 'flags-title';
+                title.textContent = 'Flags & ambiguity';
+
+                const pill = document.createElement('div');
+                pill.className = 'flags-pill';
+                pill.textContent = flags.length + (flags.length === 1 ? ' flag' : ' flags');
+
+                header.appendChild(title);
+                header.appendChild(pill);
+                shell.appendChild(header);
+
+                flags.forEach((flag) => {
+                    const item = document.createElement('div');
+                    item.className = 'flag-item';
+
+                    const label = document.createElement('div');
+                    label.className = 'flag-label';
+                    label.textContent = flag.category;
+
+                    const text = document.createElement('div');
+                    text.className = 'flag-text';
+                    text.textContent = flag.text;
+
+                    item.appendChild(label);
+                    item.appendChild(text);
+                    shell.appendChild(item);
+                });
+
+                outputFlags.appendChild(shell);
+            }
+
+            // Staggered reveal for "secondary" output band
+            setTimeout(() => {
+                outputFlags.classList.add('visible');
+            }, 180);
+
+            setTimeout(() => {
+                prescriptionCta.classList.add('visible');
+            }, 420);
+        }
+
+        function renderPrescription(parsed) {
+            currentPrescription = parsed;
+            prescriptionSections.innerHTML = '';
+            prescriptionError.style.display = 'none';
+
+            const sections = [
+                {
+                    title: 'Deal overview',
+                    body: parsed.deal_overview || 'No deal overview generated.',
+                    isList: false
+                },
+                {
+                    title: 'Demo prescription',
+                    body: parsed.demo_prescription || 'No demo prescription generated.',
+                    isList: false
+                },
+                {
+                    title: 'Market context',
+                    body: parsed.market_context,
+                    isList: true
+                }
+            ];
+
+            sections.forEach((section, index) => {
+                const card = document.createElement('article');
+                card.className = 'prescription-section';
+
+                const title = document.createElement('div');
+                title.className = 'prescription-section-title';
+                title.textContent = section.title;
+
+                const body = document.createElement('div');
+                body.className = 'prescription-section-body';
+
+                if (section.isList && Array.isArray(section.body) && section.body.length) {
+                    const list = document.createElement('ul');
+                    section.body.forEach((item) => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        list.appendChild(li);
+                    });
+                    body.appendChild(list);
+                } else if (section.isList) {
+                    body.textContent = 'No market context generated.';
+                } else {
+                    body.textContent = section.body;
+                }
+
+                card.appendChild(title);
+                card.appendChild(body);
+                prescriptionSections.appendChild(card);
+
+                setTimeout(() => {
+                    card.classList.add('visible');
+                }, 120 + index * 180);
+            });
+
+            prescriptionPanel.classList.add('visible');
+            prescriptionPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(() => {
+                exportCta.classList.add('visible');
+            }, 280);
+        }
+
+        async function runPrescription() {
+            if (!currentMeddic) return;
+
+            prescriptionError.style.display = 'none';
+            prescriptionError.textContent = '';
+            prescriptionBtn.disabled = true;
+            setLoading('prescription');
+
+            try {
+                const res = await fetch('/get-prescription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+    meddic_output: JSON.stringify(currentMeddic),
+    buyer: prospectNameEl.value.trim()
+})
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(data.result);
+                } catch (parseErr) {
+                    console.error('Failed to parse prescription JSON:', data.result);
+                    throw new Error('Unable to interpret prescription response. Try again.');
+                }
+
+                renderPrescription(parsed);
+            } catch (err) {
+                console.error(err);
+                prescriptionError.textContent = 'Error: ' + err.message;
+                prescriptionError.style.display = 'block';
+                prescriptionPanel.classList.add('visible');
+            } finally {
+                setLoading(null);
+                prescriptionBtn.disabled = false;
+            }
+        }
+
+        function runExportPdf() {
+            if (!currentMeddic || !currentPrescription) return;
+            updatePrintHeader();
+            window.print();
+        }
+
+        analyseBtn.addEventListener('click', runAnalysis);
+        prescriptionBtn.addEventListener('click', runPrescription);
+        exportPdfBtn.addEventListener('click', runExportPdf);
+
+        notesEl.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'enter') {
+                e.preventDefault();
+                runAnalysis();
+            }
+        });
+    </script>
+</body>
+</html>
