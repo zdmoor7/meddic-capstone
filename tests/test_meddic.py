@@ -1,17 +1,24 @@
 import json
 import unittest
 
-from meddic import MEDDIC_ELEMENTS, MalformedOutputError, parse_meddic_response
+import meddic
+from meddic import MEDDIC_ELEMENTS, MalformedOutputError, build_call_balance, parse_meddic_response
 
 
 def element(content="something", status="GREEN", questions=None, flag=""):
     return {"content": content, "flag": flag, "status": status, "follow_up_questions": questions or []}
 
 
-def reply(overrides=None, wrap=True):
+BALANCED = {"discovery_count": 16, "pitching_count": 2, "other_count": 1, "pitching_examples": ["PRISM connects natively"]}
+
+
+def reply(overrides=None, wrap=True, call_balance=BALANCED):
     meddic = {name: element() for name in MEDDIC_ELEMENTS}
     meddic.update(overrides or {})
-    return json.dumps({"meddic": meddic} if wrap else meddic)
+    data = {"meddic": meddic} if wrap else dict(meddic)
+    if call_balance is not None:
+        data["call_balance"] = call_balance
+    return json.dumps(data)
 
 
 class ParseMeddicTests(unittest.TestCase):
@@ -81,6 +88,48 @@ class ParseMeddicTests(unittest.TestCase):
             with self.subTest(bad=bad):
                 with self.assertRaises(MalformedOutputError):
                     parse_meddic_response(bad)
+
+
+class CallBalanceTests(unittest.TestCase):
+    def test_balanced_call_is_not_flagged(self):
+        balance = parse_meddic_response(reply())["call_balance"]
+        self.assertTrue(balance["measured"])
+        self.assertEqual((balance["discovery_pct"], balance["pitching_pct"]), (89, 11))
+        self.assertFalse(balance["flagged"])
+        self.assertEqual(balance["flag"], "")
+
+    def test_pitch_heavy_call_is_flagged(self):
+        balance = parse_meddic_response(reply(call_balance={"discovery_count": 3, "pitching_count": 5}))["call_balance"]
+        self.assertTrue(balance["flagged"])
+        self.assertEqual(balance["flag"], "Discovery looks thin: 62% of the call was pitching.")
+
+    def test_threshold_is_exclusive_and_configurable(self):
+        warnings = []
+        at_threshold = build_call_balance({"discovery_count": 7, "pitching_count": 3}, warnings)
+        self.assertEqual(at_threshold["pitching_pct"], 30)
+        self.assertFalse(at_threshold["flagged"])
+        self.assertTrue(build_call_balance({"discovery_count": 7, "pitching_count": 3}, warnings, threshold=20)["flagged"])
+        self.assertEqual(meddic.PITCH_THRESHOLD_PCT, at_threshold["threshold_pct"])
+
+    def test_no_classified_content_is_not_measured(self):
+        balance = parse_meddic_response(reply(call_balance={"discovery_count": 0, "pitching_count": 0}))["call_balance"]
+        self.assertFalse(balance["measured"])
+        self.assertFalse(balance["flagged"])
+        self.assertIn("Not enough", balance["flag"])
+
+    def test_missing_or_bad_balance_does_not_break_meddic(self):
+        for bad in [None, "lots", {"discovery_count": "many", "pitching_count": 2}, {"discovery_count": -1, "pitching_count": 2}]:
+            with self.subTest(bad=bad):
+                result = parse_meddic_response(reply(call_balance=bad))
+                self.assertFalse(result["call_balance"]["measured"])
+                self.assertTrue(result["warnings"])
+                self.assertTrue(result["gate"]["ready"])
+
+    def test_string_counts_and_example_cap(self):
+        balance = parse_meddic_response(reply(call_balance={
+            "discovery_count": "4", "pitching_count": "4", "pitching_examples": ["a", "b", "c"]}))["call_balance"]
+        self.assertEqual(balance["pitching_pct"], 50)
+        self.assertEqual(balance["pitching_examples"], ["a", "b"])
 
 
 if __name__ == "__main__":

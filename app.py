@@ -36,6 +36,13 @@ Metrics is the element reps miss most often, so judge it strictly:
 
 For every element that is not GREEN, give 1-3 short follow-up questions the rep should ask on the next discovery call to close the gap. Use an empty list for GREEN elements.
 
+Separately, measure the balance of the call. Count one statement per speaker turn in a transcript, or one per line or bullet in notes; never split a turn into several statements. Classify each statement as:
+- discovery: the rep asks a question, or the prospect says anything about their situation, problems, goals, tools, process or people, however brief.
+- pitching: the rep describes product features, the selling company, customers, awards or pricing.
+- other: greetings, logistics, scheduling or small talk.
+If a rep turn mixes a question with pitching, classify it by what most of the turn is.
+Count the discovery and pitching statements, and quote up to 2 short examples of pitching (under 15 words each). This balance is about the rep's behaviour and must not change the MEDDIC fields.
+
 Output should follow this JSON structure exactly, no explanation:
 {
   "meddic": {
@@ -45,7 +52,8 @@ Output should follow this JSON structure exactly, no explanation:
     "Decision Process": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []},
     "Identify Pain": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []},
     "Champion": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []}
-  }
+  },
+  "call_balance": {"discovery_count": 0, "pitching_count": 0, "other_count": 0, "pitching_examples": []}
 }
 Issue all output in JSON only, no explanation."""
 

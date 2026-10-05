@@ -22,6 +22,11 @@ MEDDIC_ELEMENTS = [
 STATUSES = ("RED", "YELLOW", "GREEN")
 MAX_FOLLOW_UPS = 3
 
+# Flag the call when more than this share of discovery+pitching statements
+# was the rep pitching. A signal to management about the rep, not a MEDDIC field.
+PITCH_THRESHOLD_PCT = 30
+MAX_PITCH_EXAMPLES = 2
+
 
 class MalformedOutputError(Exception):
     pass
@@ -105,8 +110,50 @@ def build_gate(meddic):
     }
 
 
+def _count(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)) and value >= 0:
+        return int(value)
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
+
+
+def build_call_balance(value, warnings, threshold=PITCH_THRESHOLD_PCT):
+    """Discovery-to-pitch ratio from the model's statement counts."""
+    unavailable = {"measured": False, "discovery_pct": None, "pitching_pct": None,
+                   "discovery_count": 0, "pitching_count": 0, "flagged": False,
+                   "flag": "", "pitching_examples": [], "threshold_pct": threshold}
+    if not isinstance(value, dict):
+        warnings.append("call_balance missing from model output; ratio not measured.")
+        return unavailable
+
+    discovery = _count(value.get("discovery_count"))
+    pitching = _count(value.get("pitching_count"))
+    if discovery is None or pitching is None:
+        warnings.append("call_balance counts were not non-negative integers; ratio not measured.")
+        return unavailable
+    if discovery + pitching == 0:
+        return dict(unavailable, flag="Not enough call content to measure discovery vs pitching.")
+
+    pitching_pct = round(100 * pitching / (discovery + pitching))
+    flagged = pitching_pct > threshold
+    return {
+        "measured": True,
+        "discovery_pct": 100 - pitching_pct,
+        "pitching_pct": pitching_pct,
+        "discovery_count": discovery,
+        "pitching_count": pitching,
+        "flagged": flagged,
+        "flag": f"Discovery looks thin: {pitching_pct}% of the call was pitching." if flagged else "",
+        "pitching_examples": _questions(value.get("pitching_examples"))[:MAX_PITCH_EXAMPLES],
+        "threshold_pct": threshold,
+    }
+
+
 def parse_meddic_response(raw):
-    """Turn a raw model reply into {"meddic", "gate", "warnings"}."""
+    """Turn a raw model reply into {"meddic", "gate", "call_balance", "warnings"}."""
     data = extract_json(raw)
     # Accept the six elements either wrapped in "meddic" or at the top level.
     source = data.get("meddic") if isinstance(data.get("meddic"), dict) else data
@@ -115,7 +162,8 @@ def parse_meddic_response(raw):
 
     warnings = []
     meddic = {name: normalise_element(name, source.get(name), warnings) for name in MEDDIC_ELEMENTS}
+    call_balance = build_call_balance(data.get("call_balance"), warnings)
     for w in warnings:
         logger.warning("MEDDIC output: %s", w)
 
-    return {"meddic": meddic, "gate": build_gate(meddic), "warnings": warnings}
+    return {"meddic": meddic, "gate": build_gate(meddic), "call_balance": call_balance, "warnings": warnings}

@@ -1027,6 +1027,51 @@
             padding-left: 18px;
         }
 
+        /* Discovery vs pitching balance */
+        .balance-shell {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            background: rgba(15, 23, 42, 0.85);
+            font-size: 12px;
+        }
+
+        .balance-shell.flagged { border-color: rgba(250, 204, 21, 0.75); }
+
+        .balance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .balance-bar {
+            display: flex;
+            height: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 6px;
+            background: rgba(148, 163, 184, 0.25);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .balance-bar .discovery { background: #4fd1c5; }
+        .balance-bar .pitching { background: #facc15; }
+
+        .balance-flag {
+            margin-top: 6px;
+            font-weight: 600;
+            color: #fef08a;
+        }
+
+        .balance-note {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
         /* Not-ready-to-demo gate */
         .gate-panel {
             display: none;
@@ -1258,6 +1303,28 @@
             .category-chip {
                 background: #fff !important;
             }
+
+            .balance-shell {
+                break-inside: avoid;
+                background: #fff !important;
+                color: #0f172a !important;
+                border-color: #cbd5e1 !important;
+            }
+
+            .balance-shell.flagged {
+                border: 2px solid #ca8a04 !important;
+            }
+
+            .balance-flag {
+                color: #854d0e !important;
+            }
+
+            .balance-note {
+                color: #475569 !important;
+            }
+
+            .balance-bar .discovery { background: #0d9488 !important; }
+            .balance-bar .pitching { background: #ca8a04 !important; }
 
             .category-chip.status-RED,
             .category-chip.status-YELLOW,
@@ -1659,6 +1726,65 @@
             return banner;
         }
 
+        function renderCallBalance(balance) {
+            const shell = document.createElement('div');
+            shell.className = 'balance-shell' + (balance && balance.flagged ? ' flagged' : '');
+
+            const header = document.createElement('div');
+            header.className = 'balance-header';
+            const title = document.createElement('div');
+            title.className = 'flags-title';
+            title.textContent = 'Call balance';
+            const pill = document.createElement('div');
+            pill.className = 'flags-pill';
+            header.appendChild(title);
+            header.appendChild(pill);
+            shell.appendChild(header);
+
+            if (!balance || !balance.measured) {
+                pill.textContent = 'Not measured';
+                const note = document.createElement('div');
+                note.className = 'balance-note';
+                note.textContent = (balance && balance.flag) || 'Discovery vs pitching could not be measured for these notes.';
+                shell.appendChild(note);
+                return shell;
+            }
+
+            pill.textContent = `Discovery ${balance.discovery_pct}% · Pitching ${balance.pitching_pct}%`;
+
+            const bar = document.createElement('div');
+            bar.className = 'balance-bar';
+            const disc = document.createElement('div');
+            disc.className = 'discovery';
+            disc.style.width = balance.discovery_pct + '%';
+            const pitch = document.createElement('div');
+            pitch.className = 'pitching';
+            pitch.style.width = balance.pitching_pct + '%';
+            bar.appendChild(disc);
+            bar.appendChild(pitch);
+            shell.appendChild(bar);
+
+            if (balance.flagged) {
+                const flag = document.createElement('div');
+                flag.className = 'balance-flag';
+                flag.textContent = balance.flag;
+                shell.appendChild(flag);
+                if (balance.pitching_examples.length) {
+                    const ex = document.createElement('div');
+                    ex.className = 'balance-note';
+                    ex.textContent = 'e.g. ' + balance.pitching_examples.map((e) => `“${e}”`).join(' · ');
+                    shell.appendChild(ex);
+                }
+            }
+
+            const note = document.createElement('div');
+            note.className = 'balance-note';
+            note.textContent = `${balance.discovery_count} discovery vs ${balance.pitching_count} pitching statements. `
+                + `Flagged above ${balance.threshold_pct}% pitching. A coaching signal, not part of MEDDIC.`;
+            shell.appendChild(note);
+            return shell;
+        }
+
         function hideGate() {
             gatePanel.classList.remove('visible');
             gateList.innerHTML = '';
@@ -1814,6 +1940,8 @@
 
                 outputFlags.appendChild(shell);
             }
+
+            outputFlags.appendChild(renderCallBalance(result.call_balance));
 
             // Staggered reveal for "secondary" output band
             setTimeout(() => {
