@@ -38,3 +38,31 @@ class NotesCleanupRouteTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PrescriptionRouteTests(unittest.TestCase):
+    def setUp(self):
+        self.client = app_module.app.test_client()
+        meddic = json.loads(reply())["meddic"]
+        self.payload = {"meddic_output": json.dumps(meddic), "buyer": "Northgate SaaS"}
+
+    def post(self, model_reply):
+        with mock.patch.object(app_module.client, "send_message", return_value=model_reply), \
+             mock.patch.object(app_module, "retrieve_relevant_chunks", return_value=["doc chunk"]), \
+             mock.patch.object(app_module, "save_insight") as save:
+            res = self.client.post("/get-prescription", json=self.payload)
+        return res, save
+
+    def test_returns_agenda_keyed_prescription(self):
+        from tests.test_prescription import AGENDA, reply as prescription_reply
+        res, save = self.post(prescription_reply())
+        self.assertEqual(res.status_code, 200)
+        body = res.get_json()["result"]
+        self.assertEqual(body["demo_agenda"], AGENDA)
+        self.assertEqual([s["step"] for s in body["demo_prescription"]], AGENDA)
+        save.assert_called_once()
+
+    def test_malformed_prescription_is_502(self):
+        res, save = self.post('{"deal_overview": "x", "demo_prescription": "just prose"}')
+        self.assertEqual(res.status_code, 502)
+        save.assert_not_called()

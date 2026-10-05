@@ -1,5 +1,4 @@
 import os
-import re
 from flask import Flask, request, render_template, jsonify
 from dotenv import load_dotenv
 from api_wrapper import AnthropicClient
@@ -7,10 +6,12 @@ from rag import load_docs_to_chroma, retrieve_relevant_chunks
 import json
 from database import save_insight, create_table
 from meddic import parse_meddic_response, MalformedOutputError
+from prescription import parse_prescription_response, prescription_as_text
 
 load_dotenv()
 
 MEDDIC_MAX_TOKENS = 2048
+PRESCRIPTION_MAX_TOKENS = 2048
 
 app = Flask(__name__)
 # Keep MEDDIC elements in framework order (Metrics first) instead of alphabetical.
@@ -50,18 +51,23 @@ Issue all output in JSON only, no explanation."""
 
 PRESCRIPTION_SYSTEM_PROMPT = """You are a senior sales engineering advisor. You receive a structured MEDDIC analysis of a discovery call and produce a concise deal prescription for the SE.
 
-Your output must contain exactly three sections:
+Your output must contain exactly four sections:
 
 1. DEAL OVERVIEW: A 3-4 sentence summary of the opportunity, the key stakeholders, and the stage of the deal based on the MEDDIC data.
 
-2. DEMO PRESCRIPTION: The story the SE should tell in the demo. Which features to focus on, in which order, and why. Frame it as a narrative arc that maps directly to the identified pain and decision criteria.
+2. DEMO AGENDA: The recommended demo agenda as 4-6 steps, each a short label of 2-5 words, in the order they should be shown. The agenda follows the narrative arc of the demo prescription.
 
-3. MARKET CONTEXT: 3-5 bullet points on relevant competitors, industry dynamics, and why this product is well-positioned for this specific prospect.
+3. DEMO PRESCRIPTION: The story the SE should tell in the demo, broken down by agenda step. Include one entry per agenda step, in the same order, using exactly the same label as the agenda. For each step, say which features to show and why, mapped directly to the identified pain and decision criteria.
+
+4. MARKET CONTEXT: 3-5 bullet points on relevant competitors, industry dynamics, and why this product is well-positioned for this specific prospect.
 
 Output in JSON with this structure:
 {
   "deal_overview": "...",
-  "demo_prescription": "...",
+  "demo_agenda": ["Step label", "Step label", "..."],
+  "demo_prescription": [
+    {"step": "Step label", "detail": "..."}
+  ],
   "market_context": ["...", "...", "..."]
 }
 
@@ -90,14 +96,15 @@ def get_prescription():
     try:
         chunks = retrieve_relevant_chunks(meddic_output)
         augmented_prompt = PRESCRIPTION_SYSTEM_PROMPT + "\n\nRelevant product documentation:\n" + "\n".join(chunks)
-        result = client.send_message(message=meddic_output, system=augmented_prompt)
-        clean = re.sub(r'```json\n|```', '', result).strip()
-        prescription = json.loads(clean)
+        result = client.send_message(message=meddic_output, system=augmented_prompt, max_tokens=PRESCRIPTION_MAX_TOKENS)
+        prescription = parse_prescription_response(result)
         meddic_parsed = json.loads(meddic_output)
         problem = meddic_parsed["Identify Pain"]["content"]
-        relevant_features = prescription["demo_prescription"]
-        save_insight(buyer, problem, relevant_features, None)
-        return jsonify({"result": clean})
+        save_insight(buyer, problem, prescription_as_text(prescription), None)
+        return jsonify({"result": prescription})
+    except MalformedOutputError as e:
+        app.logger.error("Malformed prescription output: %s\n%s", e, result)
+        return jsonify({"error": "The model returned a prescription we couldn't read. Please try again."}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
         

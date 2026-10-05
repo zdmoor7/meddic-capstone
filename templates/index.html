@@ -781,6 +781,27 @@
         .prescription-section:nth-child(1) { border-left: 3px solid #818cf8; }
         .prescription-section:nth-child(2) { border-left: 3px solid var(--accent-strong); }
         .prescription-section:nth-child(3) { border-left: 3px solid #60a5fa; }
+        .prescription-section:nth-child(4) { border-left: 3px solid #f0abfc; }
+
+        .agenda-list {
+            margin: 0;
+            padding-left: 20px;
+            font-weight: 600;
+        }
+
+        .agenda-list li { margin-bottom: 3px; }
+
+        .step-block + .step-block {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed rgba(148, 163, 184, 0.3);
+        }
+
+        .step-label {
+            font-weight: 600;
+            color: #c4b5fd;
+            margin-bottom: 2px;
+        }
 
         .prescription-section-title {
             font-size: 11px;
@@ -1786,9 +1807,36 @@
                     isList: false
                 },
                 {
+                    title: 'Recommended demo agenda',
+                    render: () => {
+                        const list = document.createElement('ol');
+                        list.className = 'agenda-list';
+                        parsed.demo_agenda.forEach((label) => {
+                            const li = document.createElement('li');
+                            li.textContent = label;
+                            list.appendChild(li);
+                        });
+                        return list;
+                    }
+                },
+                {
                     title: 'Demo prescription',
-                    body: parsed.demo_prescription || 'No demo prescription generated.',
-                    isList: false
+                    render: () => {
+                        const wrap = document.createElement('div');
+                        parsed.demo_prescription.forEach((step, i) => {
+                            const block = document.createElement('div');
+                            block.className = 'step-block';
+                            const label = document.createElement('div');
+                            label.className = 'step-label';
+                            label.textContent = `${i + 1}. ${step.step}`;
+                            const detail = document.createElement('div');
+                            detail.textContent = step.detail;
+                            block.appendChild(label);
+                            block.appendChild(detail);
+                            wrap.appendChild(block);
+                        });
+                        return wrap;
+                    }
                 },
                 {
                     title: 'Market context',
@@ -1808,7 +1856,9 @@
                 const body = document.createElement('div');
                 body.className = 'prescription-section-body';
 
-                if (section.isList && Array.isArray(section.body) && section.body.length) {
+                if (section.render) {
+                    body.appendChild(section.render());
+                } else if (section.isList && Array.isArray(section.body) && section.body.length) {
                     const list = document.createElement('ul');
                     section.body.forEach((item) => {
                         const li = document.createElement('li');
@@ -1873,15 +1923,7 @@
                     throw new Error(data.error || 'Request failed');
                 }
 
-                let parsed;
-                try {
-                    parsed = JSON.parse(data.result);
-                } catch (parseErr) {
-                    console.error('Failed to parse prescription JSON:', data.result);
-                    throw new Error('Unable to interpret prescription response. Try again.');
-                }
-
-                renderPrescription(parsed);
+                renderPrescription(data.result);
             } catch (err) {
                 console.error(err);
                 prescriptionError.textContent = 'Error: ' + err.message;
