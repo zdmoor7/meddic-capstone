@@ -6,22 +6,45 @@ from api_wrapper import AnthropicClient
 from rag import load_docs_to_chroma, retrieve_relevant_chunks
 import json
 from database import save_insight, create_table
+from meddic import parse_meddic_response, MalformedOutputError
 
 load_dotenv()
 
+MEDDIC_MAX_TOKENS = 2048
+
 app = Flask(__name__)
+# Keep MEDDIC elements in framework order (Metrics first) instead of alphabetical.
+app.json.sort_keys = False
 client = AnthropicClient(api_key=os.getenv("ANTHROPIC_API_KEY"))
 create_table()
 load_docs_to_chroma()
 
-MEDDIC_SYSTEM_PROMPT = """You are a tool that organises messy discovery notes into a clean, organised plan that adheres to the MEDDIC sales qualification framework. Before outputting JSON, analyse each piece of information against all six MEDDIC categories and identify every category it could belong to. When you get the notes, separate the contents according to the extent to which they align with each category. If content aligns with two or more categories, flag this with ⚠️ and specify which categories with AND. If there is no relevant content for a category, output ❓ and flag that this is the case. Output should follow this JSON structure exactly, no explanation:
+MEDDIC_SYSTEM_PROMPT = """You are a tool that organises messy discovery notes or call transcripts into a clean, organised plan that adheres to the MEDDIC sales qualification framework. Before outputting JSON, analyse each piece of information against all six MEDDIC categories and identify every category it could belong to. When you get the notes, separate the contents according to the extent to which they align with each category. If content aligns with two or more categories, flag this with ⚠️ and specify which categories with AND. If there is no relevant content for a category, leave content empty and set the flag to ❓ with a short note that nothing was captured.
+
+Only use what was learned about the prospect. Exclude the rep's own pitching (descriptions of product features or of the selling company) from every MEDDIC field.
+
+Then rate how well each element is covered with a status:
+- GREEN: well covered and specific (named people, concrete numbers, dates, steps).
+- YELLOW: present but thin, vague, second-hand or ambiguous.
+- RED: missing, or nothing usable.
+
+Metrics is the element reps miss most often, so judge it strictly:
+- GREEN only if there is a quantified business outcome the prospect cares about, with a current baseline and a target or value (e.g. "onboarding takes 30 days today, they want 20").
+- YELLOW if goals are stated without numbers, or numbers have no baseline or business impact.
+- RED if no measurable outcome was discussed.
+
+For every element that is not GREEN, give 1-3 short follow-up questions the rep should ask on the next discovery call to close the gap. Use an empty list for GREEN elements.
+
+Output should follow this JSON structure exactly, no explanation:
 {
-  "Metrics": {"content": "...", "flag": ""},
-  "Economic Buyer": {"content": "...", "flag": ""},
-  "Decision Criteria": {"content": "...", "flag": ""},
-  "Decision Process": {"content": "...", "flag": ""},
-  "Identify Pain": {"content": "...", "flag": ""},
-  "Champion": {"content": "...", "flag": ""}
+  "meddic": {
+    "Metrics": {"content": "...", "flag": "", "status": "GREEN|YELLOW|RED", "follow_up_questions": []},
+    "Economic Buyer": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []},
+    "Decision Criteria": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []},
+    "Decision Process": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []},
+    "Identify Pain": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []},
+    "Champion": {"content": "...", "flag": "", "status": "...", "follow_up_questions": []}
+  }
 }
 Issue all output in JSON only, no explanation."""
 
@@ -52,9 +75,11 @@ def index():
 def notes_cleanup():
     notes = request.json.get("notes", "")
     try:
-        result = client.send_message(message=notes, system=MEDDIC_SYSTEM_PROMPT)
-        clean = re.sub(r'```json\n|```', '', result).strip()
-        return jsonify({"result": clean})
+        result = client.send_message(message=notes, system=MEDDIC_SYSTEM_PROMPT, max_tokens=MEDDIC_MAX_TOKENS)
+        return jsonify({"result": parse_meddic_response(result)})
+    except MalformedOutputError as e:
+        app.logger.error("Malformed MEDDIC output: %s\n%s", e, result)
+        return jsonify({"error": "The model returned output we couldn't read. Please try again."}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

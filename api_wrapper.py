@@ -24,10 +24,10 @@ class AnthropicClient:
             "content-type": "application/json"
         }
 
-    def send_message(self, message, system=None, retries=3):        
+    def send_message(self, message, system=None, retries=3, max_tokens=1024):
         body = {
             "model": self.model,
-            "max_tokens": 1024,
+            "max_tokens": max_tokens,
             "messages": [
                 {"role": "user", "content": message}
             ]
@@ -41,7 +41,10 @@ class AnthropicClient:
                 json=body
             )
             if response.status_code == 200:
-                return response.json()["content"][0]["text"]
+                data = response.json()
+                if data.get("stop_reason") == "max_tokens":
+                    raise AnthropicError("Response was cut off at the max_tokens limit")
+                return data["content"][0]["text"]
             elif response.status_code == 401:
                 raise AuthError("Invalid API key")
             elif response.status_code == 429:

@@ -1,0 +1,22 @@
+Discovery call: Northgate SaaS
+Attendees: Priya Shah (Head of RevOps, Northgate), Marcus Lee (Marketing Ops Manager, Northgate), Alex (AE), Sam (SE)
+
+Sam: Thanks for making time. Before I show anything, can you walk me through how you report on paid channel performance today?
+Priya: Honestly it's a mess. We run paid across six channels: Google Ads, LinkedIn, Facebook, Capterra, G2 and a bit of Reddit. We have no reliable view of which ones actually drive pipeline.
+Sam: How do you produce the numbers you do have?
+Marcus: Manually. My team pulls exports from HubSpot, Google Ads and LinkedIn every week and reconciles them in spreadsheets. It takes about 15 hours a week, and the attribution still isn't right because we only see last touch.
+Sam: What does that cost you beyond the 15 hours?
+Priya: We spend about $2.4M a year on paid. Our CFO thinks at least 30% of that is wasted but we can't prove which 30%. Our blended CAC is $11,200 and the board wants it under $9,000 by the end of next fiscal year.
+Sam: So if you could see true multi-touch attribution, what would success look like in numbers?
+Priya: Cut the manual reporting from 15 hours a week to under 2, and reallocate budget to get CAC down about 20% within two quarters.
+Sam: Who else cares about this outside RevOps?
+Priya: Dana Ruiz, our CFO. Anything over $50k needs her signature and she owns the paid budget. She's asked me to bring her a recommendation by the end of November.
+Sam: What will Dana look for when she evaluates options?
+Priya: Payback inside 12 months. And from the team side, it must have a native HubSpot integration, support multi-touch models we can configure, and pass our SOC 2 review.
+Sam: How does a purchase like this get approved at Northgate?
+Marcus: We shortlist two vendors by mid-November, run a two-week trial on real data, security does a SOC 2 questionnaire review that takes about ten days, then Dana signs and procurement issues the PO. We'd want to go live in January for Q1 planning.
+Sam: Who's driving this internally?
+Priya: Me. I raised the problem with leadership in our last QBR and I'll present the recommendation to Dana myself. I'm happy to set up a call with her once we've seen a demo.
+Alex: Great. Quickly, PRISM connects to HubSpot natively and models multi-touch attribution out of the box, so it should fit what you've described.
+Sam: Last question: what happens if you don't fix this before Q1 planning?
+Priya: We set next year's $2.4M budget blind again, and I'd expect the board to cut paid spend across the board rather than just the channels that don't work.

@@ -1,0 +1,11 @@
+Intro call: Northgate SaaS
+Attendees: Marcus Lee (Marketing Ops, Northgate), Alex (AE)
+
+Alex: Thanks for joining. Let me tell you a bit about PRISM. We're a marketing analytics platform used by over 400 B2B SaaS companies. We connect to all your ad platforms and your CRM, and our multi-touch attribution engine shows you exactly which channels drive revenue.
+Alex: We also have automated reporting, so dashboards refresh every hour, and our AI budget recommendations tell you where to move spend. Customers love our HubSpot integration, it takes about ten minutes to set up.
+Alex: We were named a leader in the latest analyst report and we have SOC 2 Type II.
+Marcus: Sounds interesting. Attribution is a bit of a headache for us.
+Alex: That's exactly what we solve. Our platform also does cohort analysis, pipeline forecasting and channel benchmarking against similar companies.
+Marcus: We use HubSpot, so that integration matters.
+Alex: Perfect. I'd love to set up a demo with your team next week.
+Marcus: Sure, send something over and I'll see who can join.
