@@ -8,8 +8,8 @@ AGENDA = ["Acknowledge attribution chaos", "Connect HubSpot live", "Trace multi-
 
 
 def reply(agenda=AGENDA, steps=None, **extra):
-    steps = steps if steps is not None else [{"step": a, "detail": f"Show {a}."} for a in agenda]
-    data = {"deal_overview": "Overview.", "demo_agenda": agenda, "demo_prescription": steps,
+    steps = steps if steps is not None else [{"step": a, "points": [f"Show {a}.", "Tie it to the pain."]} for a in agenda]
+    data = {"deal_overview": ["Mid-market SaaS, $2.4M paid spend.", "CFO signs."], "demo_agenda": agenda, "demo_prescription": steps,
             "market_context": ["Competitor A", "Competitor B", "Competitor C"]}
     data.update(extra)
     return json.dumps(data)
@@ -23,7 +23,7 @@ class ParsePrescriptionTests(unittest.TestCase):
         self.assertEqual(result["warnings"], [])
 
     def test_step_labels_relabelled_to_agenda_by_position(self):
-        steps = [{"step": a.upper() if i == 1 else "Something else" if i == 2 else a, "detail": "x"}
+        steps = [{"step": a.upper() if i == 1 else "Something else" if i == 2 else a, "points": ["x"]}
                  for i, a in enumerate(AGENDA)]
         result = parse_prescription_response(reply(steps=steps))
         self.assertEqual([s["step"] for s in result["demo_prescription"]], AGENDA)
@@ -31,7 +31,7 @@ class ParsePrescriptionTests(unittest.TestCase):
         self.assertEqual(len(result["warnings"]), 1)
 
     def test_count_mismatch_rebuilds_agenda_from_steps(self):
-        steps = [{"step": a, "detail": "x"} for a in AGENDA]
+        steps = [{"step": a, "points": ["x"]} for a in AGENDA]
         result = parse_prescription_response(reply(agenda=AGENDA[:2], steps=steps))
         self.assertEqual(result["demo_agenda"], AGENDA)
         self.assertTrue(any("rebuilt" in w for w in result["warnings"]))
@@ -58,7 +58,23 @@ class ParsePrescriptionTests(unittest.TestCase):
 
     def test_prescription_as_text(self):
         text = prescription_as_text(parse_prescription_response(reply()))
-        self.assertTrue(text.startswith("Acknowledge attribution chaos: Show"))
+        self.assertTrue(text.startswith("Acknowledge attribution chaos:\n- Show"))
+
+    def test_bullets_pass_through(self):
+        result = parse_prescription_response(reply())
+        self.assertEqual(result["deal_overview"], ["Mid-market SaaS, $2.4M paid spend.", "CFO signs."])
+        self.assertEqual(result["demo_prescription"][0]["points"], ["Show Acknowledge attribution chaos.", "Tie it to the pain."])
+
+    def test_prose_is_split_into_sentence_bullets(self):
+        steps = [{"step": a, "detail": "First point. Second point? Third!"} for a in AGENDA]
+        result = parse_prescription_response(reply(steps=steps, deal_overview="Deal one. Deal two."))
+        self.assertEqual(result["deal_overview"], ["Deal one.", "Deal two."])
+        self.assertEqual(result["demo_prescription"][0]["points"], ["First point.", "Second point?", "Third!"])
+        self.assertTrue(any("came back as prose" in w for w in result["warnings"]))
+
+    def test_long_bullet_warns(self):
+        result = parse_prescription_response(reply(deal_overview=["word " * 31]))
+        self.assertTrue(any("31-word bullet" in w for w in result["warnings"]))
 
 
 if __name__ == "__main__":

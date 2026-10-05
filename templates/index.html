@@ -803,6 +803,8 @@
             margin-bottom: 2px;
         }
 
+        .prescription-section-body { white-space: normal; }
+
         .prescription-section-title {
             font-size: 11px;
             font-weight: 600;
@@ -1242,16 +1244,44 @@
                 margin-bottom: 12px;
             }
 
+            .output-stage {
+                overflow: visible;
+            }
+
             .metrics-banner {
                 break-inside: avoid;
                 background: #fff !important;
                 color: #0f172a !important;
+                border-width: 2px;
+            }
+
+            .category-chip {
+                background: #fff !important;
             }
 
             .category-chip.status-RED,
             .category-chip.status-YELLOW,
             .category-chip.status-GREEN {
                 color: #0f172a !important;
+            }
+
+            .prescription-section {
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+
+            .step-block,
+            .prescription-section-body li {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .step-label {
+                color: #0f172a !important;
+            }
+
+            .step-block + .step-block {
+                border-top-color: #cbd5e1 !important;
             }
 
             .status-RED .status-dot { background: #dc2626 !important; box-shadow: none; }
@@ -1378,13 +1408,13 @@
                         </div>
                     </div>
 
+                    <p class="print-only print-section-label">MEDDIC Qualification</p>
+
                     <!-- Main structured output -->
                     <div id="output-main" class="output-main"></div>
 
                     <!-- Secondary flags / risk band -->
                     <div id="output-flags" class="output-flags"></div>
-
-                    <p class="print-only print-section-label">MEDDIC Qualification</p>
 
                     <div id="prescription-cta" class="prescription-cta no-print">
                         <button id="prescription-btn" type="button">
@@ -1795,6 +1825,16 @@
             }, 420);
         }
 
+        function bulletList(items) {
+            const list = document.createElement('ul');
+            (items || []).forEach((item) => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            });
+            return list;
+        }
+
         function renderPrescription(parsed) {
             currentPrescription = parsed;
             prescriptionSections.innerHTML = '';
@@ -1803,8 +1843,9 @@
             const sections = [
                 {
                     title: 'Deal overview',
-                    body: parsed.deal_overview || 'No deal overview generated.',
-                    isList: false
+                    body: parsed.deal_overview,
+                    isList: true,
+                    empty: 'No deal overview generated.'
                 },
                 {
                     title: 'Recommended demo agenda',
@@ -1829,10 +1870,8 @@
                             const label = document.createElement('div');
                             label.className = 'step-label';
                             label.textContent = `${i + 1}. ${step.step}`;
-                            const detail = document.createElement('div');
-                            detail.textContent = step.detail;
                             block.appendChild(label);
-                            block.appendChild(detail);
+                            block.appendChild(bulletList(step.points));
                             wrap.appendChild(block);
                         });
                         return wrap;
@@ -1841,7 +1880,8 @@
                 {
                     title: 'Market context',
                     body: parsed.market_context,
-                    isList: true
+                    isList: true,
+                    empty: 'No market context generated.'
                 }
             ];
 
@@ -1859,15 +1899,9 @@
                 if (section.render) {
                     body.appendChild(section.render());
                 } else if (section.isList && Array.isArray(section.body) && section.body.length) {
-                    const list = document.createElement('ul');
-                    section.body.forEach((item) => {
-                        const li = document.createElement('li');
-                        li.textContent = item;
-                        list.appendChild(li);
-                    });
-                    body.appendChild(list);
+                    body.appendChild(bulletList(section.body));
                 } else if (section.isList) {
-                    body.textContent = 'No market context generated.';
+                    body.textContent = section.empty;
                 } else {
                     body.textContent = section.body;
                 }

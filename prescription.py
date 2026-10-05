@@ -5,6 +5,7 @@ carry the same label, in the same order, as an agenda item. When the model
 drifts we repair what we safely can and record a warning.
 """
 import logging
+import re
 
 from meddic import MalformedOutputError, extract_json, _text
 
@@ -14,6 +15,8 @@ AGENDA_MIN_STEPS = 4
 AGENDA_MAX_STEPS = 6
 AGENDA_MIN_WORDS = 2
 AGENDA_MAX_WORDS = 5
+# A bullet longer than this runs past ~4 lines in the output panel and PDF.
+MAX_BULLET_WORDS = 30
 
 
 def _label_key(label):
@@ -28,14 +31,34 @@ def _string_list(value):
     return [t for t in (_text(v) for v in value) if t]
 
 
-def _steps(value):
+def split_sentences(text):
+    return [t.strip() for t in re.split(r"(?<=[.!?])\s+", text) if t.strip()]
+
+
+def bullets(value, field, warnings):
+    """Coerce a field to a list of bullets; prose is split into one bullet per sentence."""
+    if isinstance(value, str) and value.strip():
+        warnings.append(f"{field} came back as prose; split into sentence bullets.")
+        items = split_sentences(value)
+    else:
+        items = _string_list(value)
+    for item in items:
+        words = len(item.split())
+        if words > MAX_BULLET_WORDS:
+            warnings.append(f"{field} has a {words}-word bullet (max {MAX_BULLET_WORDS}).")
+    return items
+
+
+def _steps(value, warnings):
     if not isinstance(value, list) or not value:
         raise MalformedOutputError("demo_prescription must be a non-empty list of agenda steps.")
     steps = []
     for item in value:
         if not isinstance(item, dict) or not _text(item.get("step")):
             raise MalformedOutputError("Each demo_prescription item needs a 'step' label.")
-        steps.append({"step": _text(item.get("step")), "detail": _text(item.get("detail"))})
+        label = _text(item.get("step"))
+        points = item.get("points", item.get("detail"))
+        steps.append({"step": label, "points": bullets(points, f"Step {label!r}", warnings)})
     return steps
 
 
@@ -72,15 +95,15 @@ def parse_prescription_response(raw):
     data = extract_json(raw)
     warnings = []
 
-    steps = _steps(data.get("demo_prescription"))
+    steps = _steps(data.get("demo_prescription"), warnings)
     agenda, steps = align_agenda(_string_list(data.get("demo_agenda")), steps, warnings)
     check_agenda_shape(agenda, warnings)
 
     result = {
-        "deal_overview": _text(data.get("deal_overview")),
+        "deal_overview": bullets(data.get("deal_overview"), "deal_overview", warnings),
         "demo_agenda": agenda,
         "demo_prescription": steps,
-        "market_context": _string_list(data.get("market_context")),
+        "market_context": bullets(data.get("market_context"), "market_context", warnings),
         "warnings": warnings,
     }
     for w in warnings:
@@ -90,4 +113,7 @@ def parse_prescription_response(raw):
 
 def prescription_as_text(prescription):
     """Plain-text form of the demo prescription, for storage and RAG-style reuse."""
-    return "\n".join(f"{s['step']}: {s['detail']}" for s in prescription["demo_prescription"])
+    return "\n".join(
+        f"{s['step']}:\n" + "\n".join(f"- {p}" for p in s["points"])
+        for s in prescription["demo_prescription"]
+    )
