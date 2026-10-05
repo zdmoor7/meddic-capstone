@@ -2,7 +2,7 @@ import json
 import unittest
 
 from meddic import MalformedOutputError
-from prescription import parse_prescription_response, prescription_as_text
+from prescription import parse_prescription_response
 
 AGENDA = ["Acknowledge attribution chaos", "Connect HubSpot live", "Trace multi-touch journey", "Show ROI dashboard"]
 
@@ -55,10 +55,6 @@ class ParsePrescriptionTests(unittest.TestCase):
             with self.subTest(steps=steps):
                 with self.assertRaises(MalformedOutputError):
                     parse_prescription_response(reply(steps=steps))
-
-    def test_prescription_as_text(self):
-        text = prescription_as_text(parse_prescription_response(reply()))
-        self.assertTrue(text.startswith("Acknowledge attribution chaos:\n- Show"))
 
     def test_bullets_pass_through(self):
         result = parse_prescription_response(reply())

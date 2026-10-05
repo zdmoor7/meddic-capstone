@@ -14,4 +14,7 @@ run: ## Run the Flask app locally on port 5000
 test: ## Run the unit tests
 	$(PYTHON) -m unittest discover -s tests -v
 
-.PHONY: help install run test
+export-crm: ## Export saved deals as CRM JSON payloads to crm_export.json
+	$(PYTHON) export_deals.py --out crm_export.json
+
+.PHONY: help install run test export-crm

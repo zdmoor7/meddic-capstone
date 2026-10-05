@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 from api_wrapper import AnthropicClient
 from rag import load_docs_to_chroma, retrieve_relevant_chunks
 import json
-from database import save_insight, create_table
+from datetime import datetime, timezone
 from meddic import parse_meddic_response, MalformedOutputError
-from prescription import parse_prescription_response, prescription_as_text
+from prescription import parse_prescription_response
+from storage import get_store
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ app = Flask(__name__)
 # Keep MEDDIC elements in framework order (Metrics first) instead of alphabetical.
 app.json.sort_keys = False
 client = AnthropicClient(api_key=os.getenv("ANTHROPIC_API_KEY"))
-create_table()
+store = get_store()
 load_docs_to_chroma()
 
 MEDDIC_SYSTEM_PROMPT = """You are a tool that organises messy discovery notes or call transcripts into a clean, organised plan that adheres to the MEDDIC sales qualification framework. Before outputting JSON, analyse each piece of information against all six MEDDIC categories and identify every category it could belong to. When you get the notes, separate the contents according to the extent to which they align with each category. If content aligns with two or more categories, flag this with ⚠️ and specify which categories with AND. If there is no relevant content for a category, leave content empty and set the flag to ❓ with a short note that nothing was captured.
@@ -103,14 +104,21 @@ def notes_cleanup():
 def get_prescription():
     meddic_output = request.json.get("meddic_output", "")
     buyer = request.json.get("buyer", "")
+    call_balance = request.json.get("call_balance")
+    gate_overridden = bool(request.json.get("gate_overridden"))
     try:
         chunks = retrieve_relevant_chunks(meddic_output)
         augmented_prompt = PRESCRIPTION_SYSTEM_PROMPT + "\n\nRelevant product documentation:\n" + "\n".join(chunks)
         result = client.send_message(message=meddic_output, system=augmented_prompt, max_tokens=PRESCRIPTION_MAX_TOKENS)
         prescription = parse_prescription_response(result)
-        meddic_parsed = json.loads(meddic_output)
-        problem = meddic_parsed["Identify Pain"]["content"]
-        save_insight(buyer, problem, prescription_as_text(prescription), None)
+        store.save_deal({
+            "buyer": buyer,
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "meddic": json.loads(meddic_output),
+            "call_balance": call_balance,
+            "prescription": prescription,
+            "gate_overridden": gate_overridden,
+        })
         return jsonify({"result": prescription})
     except MalformedOutputError as e:
         app.logger.error("Malformed prescription output: %s\n%s", e, result)

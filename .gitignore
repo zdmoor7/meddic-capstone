@@ -3,3 +3,5 @@ chroma_db/
 insights.db
 __pycache__/
 *.pyc
+crm_export.json
+crm_outbox.jsonl

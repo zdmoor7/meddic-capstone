@@ -109,11 +109,3 @@ def parse_prescription_response(raw):
     for w in warnings:
         logger.warning("Prescription output: %s", w)
     return result
-
-
-def prescription_as_text(prescription):
-    """Plain-text form of the demo prescription, for storage and RAG-style reuse."""
-    return "\n".join(
-        f"{s['step']}:\n" + "\n".join(f"- {p}" for p in s["points"])
-        for s in prescription["demo_prescription"]
-    )

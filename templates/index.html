@@ -1603,6 +1603,7 @@
 
         let currentMeddic = null;
         let currentGate = null;
+        let currentCallBalance = null;
         let gateOverridden = false;
         let currentPrescription = null;
 
@@ -1616,6 +1617,7 @@
         function resetPrescription() {
             currentMeddic = null;
             currentGate = null;
+            currentCallBalance = null;
             gateOverridden = false;
             currentPrescription = null;
             hideGate();
@@ -1813,6 +1815,7 @@
             const parsed = result.meddic;
             currentMeddic = parsed;
             currentGate = result.gate;
+            currentCallBalance = result.call_balance;
 
             // Clear placeholder and previous content
             outputPlaceholder.style.display = 'none';
@@ -2075,6 +2078,7 @@
                     body: JSON.stringify({ 
                         meddic_output: JSON.stringify(currentMeddic),
                         buyer: prospectNameEl.value.trim(),
+                        call_balance: currentCallBalance,
                         gate_overridden: gateOverridden
                     })
                 });

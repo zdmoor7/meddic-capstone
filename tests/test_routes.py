@@ -1,9 +1,13 @@
 import json
 import os
+import tempfile
 import unittest
 from unittest import mock
 
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-key")
+# Keep test deals out of the real insights.db.
+os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
+os.environ["STORAGE_BACKEND"] = "sqlite"
 
 import app as app_module  # noqa: E402
 from tests.test_meddic import element, reply  # noqa: E402
@@ -44,12 +48,13 @@ class PrescriptionRouteTests(unittest.TestCase):
     def setUp(self):
         self.client = app_module.app.test_client()
         meddic = json.loads(reply())["meddic"]
-        self.payload = {"meddic_output": json.dumps(meddic), "buyer": "Northgate SaaS"}
+        self.payload = {"meddic_output": json.dumps(meddic), "buyer": "Northgate SaaS",
+                        "call_balance": {"measured": True, "pitching_pct": 10}, "gate_overridden": True}
 
     def post(self, model_reply):
         with mock.patch.object(app_module.client, "send_message", return_value=model_reply), \
              mock.patch.object(app_module, "retrieve_relevant_chunks", return_value=["doc chunk"]), \
-             mock.patch.object(app_module, "save_insight") as save:
+             mock.patch.object(app_module.store, "save_deal") as save:
             res = self.client.post("/get-prescription", json=self.payload)
         return res, save
 
@@ -61,6 +66,11 @@ class PrescriptionRouteTests(unittest.TestCase):
         self.assertEqual(body["demo_agenda"], AGENDA)
         self.assertEqual([s["step"] for s in body["demo_prescription"]], AGENDA)
         save.assert_called_once()
+        deal = save.call_args[0][0]
+        self.assertEqual(deal["buyer"], "Northgate SaaS")
+        self.assertTrue(deal["gate_overridden"])
+        self.assertEqual(deal["call_balance"]["pitching_pct"], 10)
+        self.assertEqual(deal["prescription"]["demo_agenda"], AGENDA)
 
     def test_malformed_prescription_is_502(self):
         res, save = self.post('{"deal_overview": "x", "demo_prescription": "just prose"}')
