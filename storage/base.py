@@ -22,3 +22,7 @@ class DealStore(ABC):
     @abstractmethod
     def list_deals(self):
         """Return all saved deals, oldest first."""
+
+    @abstractmethod
+    def update_prescription(self, deal_id, prescription):
+        """Overwrite a saved deal's prescription (e.g. after the SE refines it). Returns True if found."""

@@ -40,9 +40,6 @@ class NotesCleanupRouteTests(unittest.TestCase):
         self.assertIn("couldn't read", res.get_json()["error"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class PrescriptionRouteTests(unittest.TestCase):
     def setUp(self):
@@ -54,7 +51,7 @@ class PrescriptionRouteTests(unittest.TestCase):
     def post(self, model_reply):
         with mock.patch.object(app_module.client, "send_message", return_value=model_reply), \
              mock.patch.object(app_module, "retrieve_relevant_chunks", return_value=["doc chunk"]), \
-             mock.patch.object(app_module.store, "save_deal") as save:
+             mock.patch.object(app_module.store, "save_deal", return_value=1) as save:
             res = self.client.post("/get-prescription", json=self.payload)
         return res, save
 
@@ -65,6 +62,7 @@ class PrescriptionRouteTests(unittest.TestCase):
         body = res.get_json()["result"]
         self.assertEqual(body["demo_agenda"], AGENDA)
         self.assertEqual([s["step"] for s in body["demo_prescription"]], AGENDA)
+        self.assertEqual(res.get_json()["deal_id"], 1)
         save.assert_called_once()
         deal = save.call_args[0][0]
         self.assertEqual(deal["buyer"], "Northgate SaaS")
@@ -76,3 +74,48 @@ class PrescriptionRouteTests(unittest.TestCase):
         res, save = self.post('{"deal_overview": "x", "demo_prescription": "just prose"}')
         self.assertEqual(res.status_code, 502)
         save.assert_not_called()
+
+
+class RefineRouteTests(unittest.TestCase):
+    def setUp(self):
+        from tests.test_prescription import reply as prescription_reply
+        self.client = app_module.app.test_client()
+        self.plan = app_module.parse_prescription_response(prescription_reply())
+        self.meddic = json.loads(reply())["meddic"]
+
+    def test_refine_returns_merged_plan(self):
+        model = json.dumps({"reply": "Done.", "changes": {"changed_steps": [
+            {"step": "Connect HubSpot live", "points": ["New point."]}]}})
+        with mock.patch.object(app_module.client, "send_message", return_value=model) as send:
+            res = self.client.post("/refine", json={"meddic": self.meddic, "call_balance": None, "prescription": self.plan,
+                                                     "messages": [{"role": "user", "content": "Tighten step 2"}]})
+        self.assertEqual(res.status_code, 200)
+        body = res.get_json()["result"]
+        self.assertEqual(body["changed_steps"], ["Connect HubSpot live"])
+        self.assertEqual(body["prescription"]["demo_prescription"][1]["points"], ["New point."])
+        self.assertEqual(send.call_args.kwargs["messages"], [{"role": "user", "content": "Tighten step 2"}])
+
+    def test_refine_rejects_bad_input(self):
+        res = self.client.post("/refine", json={"prescription": self.plan, "messages": []})
+        self.assertEqual(res.status_code, 400)
+
+    def test_ready_check_saves_and_reviews(self):
+        review = json.dumps({"gaps": [{"severity": "risk", "area": "Show ROI dashboard", "issue": "Vague.", "fix": "Use numbers."}]})
+        with mock.patch.object(app_module.client, "send_message", return_value=review), \
+             mock.patch.object(app_module.store, "update_prescription", return_value=True) as update:
+            res = self.client.post("/ready-check", json={"deal_id": 3, "meddic": self.meddic, "prescription": self.plan})
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.get_json()["saved"])
+        self.assertTrue(res.get_json()["result"]["ready"])
+        self.assertEqual(update.call_args[0][0], 3)
+
+    def test_ready_check_survives_review_failure(self):
+        with mock.patch.object(app_module.client, "send_message", side_effect=RuntimeError("timeout")):
+            res = self.client.post("/ready-check", json={"meddic": self.meddic, "prescription": self.plan})
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.get_json()["saved"])
+        self.assertTrue(res.get_json()["result"]["warnings"])
+
+
+if __name__ == "__main__":
+    unittest.main()

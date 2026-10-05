@@ -24,11 +24,12 @@ class AnthropicClient:
             "content-type": "application/json"
         }
 
-    def send_message(self, message, system=None, retries=3, max_tokens=1024):
+    def send_message(self, message=None, system=None, retries=3, max_tokens=1024, messages=None):
+        """Send one user message, or a full multi-turn `messages` list."""
         body = {
             "model": self.model,
             "max_tokens": max_tokens,
-            "messages": [
+            "messages": messages or [
                 {"role": "user", "content": message}
             ]
         }

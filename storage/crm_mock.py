@@ -83,12 +83,27 @@ class CRMDealStore(DealStore):
             f.write(json.dumps(payload) + "\n")
 
     def list_deals(self):
+        """Latest payload per external_id (each send is an upsert)."""
         if not os.path.exists(self.outbox_path):
             return []
+        latest = {}
         with open(self.outbox_path, encoding="utf-8") as f:
-            return [json.loads(line) for line in f if line.strip()]
+            for line in f:
+                if line.strip():
+                    payload = json.loads(line)
+                    latest[payload["external_id"]] = payload
+        return list(latest.values())
 
     def save_deal(self, deal):
         deal_id = len(self.list_deals()) + 1
         self._send(to_crm_payload(dict(deal, id=deal_id)))
         return deal_id
+
+    def update_prescription(self, deal_id, prescription):
+        external_id = f"meddic-tool-{deal_id}"
+        existing = next((p for p in self.list_deals() if p["external_id"] == external_id), None)
+        if existing is None:
+            return False
+        refreshed = to_crm_payload({"prescription": prescription})["demo_plan"]
+        self._send(dict(existing, demo_plan=refreshed))
+        return True

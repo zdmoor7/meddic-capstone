@@ -92,7 +92,13 @@ def check_agenda_shape(agenda, warnings):
 
 
 def parse_prescription_response(raw):
-    data = extract_json(raw)
+    return normalise_prescription(extract_json(raw))
+
+
+def normalise_prescription(data):
+    """Validate a prescription dict (from the model or the browser) into the standard shape."""
+    if not isinstance(data, dict):
+        raise MalformedOutputError("Prescription must be a JSON object.")
     warnings = []
 
     steps = _steps(data.get("demo_prescription"), warnings)

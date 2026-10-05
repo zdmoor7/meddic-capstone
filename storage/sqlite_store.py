@@ -33,6 +33,11 @@ class SQLiteDealStore(DealStore):
             )
             return cur.lastrowid
 
+    def update_prescription(self, deal_id, prescription):
+        with self._connect() as conn:
+            cur = conn.execute("UPDATE deals SET prescription = ? WHERE id = ?", (json.dumps(prescription), deal_id))
+            return cur.rowcount == 1
+
     def list_deals(self):
         with self._connect() as conn:
             rows = conn.execute("SELECT * FROM deals ORDER BY id").fetchall()

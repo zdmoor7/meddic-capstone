@@ -6,13 +6,17 @@ from rag import load_docs_to_chroma, retrieve_relevant_chunks
 import json
 from datetime import datetime, timezone
 from meddic import parse_meddic_response, MalformedOutputError
-from prescription import parse_prescription_response
+from prescription import parse_prescription_response, normalise_prescription
+from refine import (READY_CHECK_SYSTEM_PROMPT, build_ready_check, clean_history,
+                    parse_refine_response, plan_for_prompt, refine_system_prompt)
 from storage import get_store
 
 load_dotenv()
 
 MEDDIC_MAX_TOKENS = 2048
 PRESCRIPTION_MAX_TOKENS = 2048
+REFINE_MAX_TOKENS = 1500
+READY_CHECK_MAX_TOKENS = 1024
 
 app = Flask(__name__)
 # Keep MEDDIC elements in framework order (Metrics first) instead of alphabetical.
@@ -111,7 +115,7 @@ def get_prescription():
         augmented_prompt = PRESCRIPTION_SYSTEM_PROMPT + "\n\nRelevant product documentation:\n" + "\n".join(chunks)
         result = client.send_message(message=meddic_output, system=augmented_prompt, max_tokens=PRESCRIPTION_MAX_TOKENS)
         prescription = parse_prescription_response(result)
-        store.save_deal({
+        deal_id = store.save_deal({
             "buyer": buyer,
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "meddic": json.loads(meddic_output),
@@ -119,14 +123,57 @@ def get_prescription():
             "prescription": prescription,
             "gate_overridden": gate_overridden,
         })
-        return jsonify({"result": prescription})
+        return jsonify({"result": prescription, "deal_id": deal_id})
     except MalformedOutputError as e:
         app.logger.error("Malformed prescription output: %s\n%s", e, result)
         return jsonify({"error": "The model returned a prescription we couldn't read. Please try again."}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        
 
+
+@app.route("/refine", methods=["POST"])
+def refine():
+    """One chat turn on the demo plan. History lives in the browser; edits come back as a diff."""
+    body = request.json or {}
+    result = None
+    try:
+        prescription = normalise_prescription(body.get("prescription"))
+        messages = clean_history(body.get("messages"))
+    except (MalformedOutputError, ValueError) as e:
+        return jsonify({"error": str(e)}), 400
+    try:
+        system = refine_system_prompt(body.get("meddic") or {}, body.get("call_balance"), prescription)
+        result = client.send_message(messages=messages, system=system, max_tokens=REFINE_MAX_TOKENS)
+        return jsonify({"result": parse_refine_response(result, prescription)})
+    except MalformedOutputError as e:
+        app.logger.error("Malformed refine output: %s\n%s", e, result)
+        return jsonify({"error": "The model returned a reply we couldn't read. Please try again."}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/ready-check", methods=["POST"])
+def ready_check():
+    """Save the SE's final plan over the deal, then flag any remaining gaps."""
+    body = request.json or {}
+    meddic = body.get("meddic") or {}
+    try:
+        prescription = normalise_prescription(body.get("prescription"))
+    except MalformedOutputError as e:
+        return jsonify({"error": str(e)}), 400
+    try:
+        saved = bool(body.get("deal_id")) and store.update_prescription(int(body["deal_id"]), prescription)
+        try:
+            review = client.send_message(
+                message=json.dumps({"meddic": meddic, "demo_plan": plan_for_prompt(prescription)}),
+                system=READY_CHECK_SYSTEM_PROMPT, max_tokens=READY_CHECK_MAX_TOKENS)
+        except Exception as e:
+            # The rule checks still run; build_ready_check notes the review was unavailable.
+            app.logger.error("Readiness review call failed: %s", e)
+            review = ""
+        return jsonify({"result": build_ready_check(meddic, prescription, review), "saved": saved})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

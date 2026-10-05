@@ -42,6 +42,15 @@ class SQLiteStoreTests(unittest.TestCase):
         self.assertEqual(saved["prescription"]["demo_agenda"], ["Step one", "Step two"])
         self.assertIs(saved["gate_overridden"], True)
 
+    def test_update_prescription_overwrites(self):
+        store = SQLiteDealStore(os.path.join(tempfile.mkdtemp(), "t.db"))
+        deal_id = store.save_deal(make_deal())
+        refined = dict(make_deal()["prescription"], demo_agenda=["Refined step", "Another step"])
+        self.assertTrue(store.update_prescription(deal_id, refined))
+        self.assertFalse(store.update_prescription(999, refined))
+        [saved] = store.list_deals()
+        self.assertEqual(saved["prescription"]["demo_agenda"], ["Refined step", "Another step"])
+
 
 class CRMPayloadTests(unittest.TestCase):
     def test_payload_shape(self):
@@ -78,6 +87,11 @@ class StoreSelectionTests(unittest.TestCase):
             store.save_deal(make_deal())
             [payload] = store.list_deals()
             self.assertEqual(payload["external_id"], "meddic-tool-1")
+            refined = dict(make_deal()["prescription"], demo_agenda=["Refined step", "Another step"])
+            self.assertTrue(store.update_prescription(1, refined))
+            [payload] = store.list_deals()  # upsert: still one deal, now refined
+            self.assertEqual(payload["demo_plan"]["agenda"], ["Refined step", "Another step"])
+            self.assertEqual(payload["opportunity"]["name"], "Northgate SaaS")
         with mock.patch.dict(os.environ, {"STORAGE_BACKEND": "sqlite", "DB_PATH": os.path.join(tmp, "s.db")}):
             self.assertIsInstance(get_store(), SQLiteDealStore)
         with mock.patch.dict(os.environ, {"STORAGE_BACKEND": "postgres"}):

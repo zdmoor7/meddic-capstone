@@ -1118,6 +1118,167 @@
 
         #gate-proceed-btn { border-color: rgba(248, 113, 113, 0.8); }
 
+        /* Refine chat + readiness check */
+        .refine-panel {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(129, 140, 248, 0.45);
+            background: rgba(15, 23, 42, 0.85);
+            font-size: 12px;
+        }
+
+        .refine-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #c4b5fd;
+        }
+
+        .refine-caption {
+            color: var(--muted);
+            font-size: 11px;
+            margin: 2px 0 8px;
+        }
+
+        .refine-log {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .refine-log:empty { display: none; }
+
+        .refine-msg {
+            padding: 6px 9px;
+            border-radius: 10px;
+            line-height: 1.45;
+            max-width: 88%;
+            white-space: pre-wrap;
+        }
+
+        .refine-msg.user {
+            align-self: flex-end;
+            background: rgba(79, 209, 197, 0.14);
+            border: 1px solid rgba(79, 209, 197, 0.4);
+        }
+
+        .refine-msg.assistant {
+            align-self: flex-start;
+            background: rgba(129, 140, 248, 0.12);
+            border: 1px solid rgba(129, 140, 248, 0.35);
+        }
+
+        .refine-msg.pending { color: var(--muted); font-style: italic; }
+
+        .refine-msg .edited-note {
+            display: block;
+            margin-top: 3px;
+            font-size: 11px;
+            color: #c4b5fd;
+        }
+
+        .refine-input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            align-items: flex-end;
+        }
+
+        #refine-input {
+            flex: 1;
+            min-height: 0;
+            height: 52px;
+            resize: vertical;
+            font-size: 12px;
+            padding: 7px 9px;
+        }
+
+        .refine-panel button {
+            padding: 7px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(129, 140, 248, 0.65);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .refine-panel button:disabled { opacity: 0.6; cursor: default; }
+
+        .refine-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        #ready-check-btn { border-color: rgba(74, 222, 128, 0.7); }
+
+        .ready-result {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid;
+            display: none;
+        }
+
+        .ready-result.visible { display: block; }
+        .ready-result.is-ready { border-color: rgba(74, 222, 128, 0.7); background: rgba(20, 83, 45, 0.4); }
+        .ready-result.not-ready { border-color: rgba(248, 113, 113, 0.8); background: rgba(69, 10, 10, 0.55); }
+
+        .ready-headline {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .ready-gap { margin-top: 8px; line-height: 1.45; }
+
+        .ready-gap-head {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .severity-tag {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 1px 6px;
+            border-radius: var(--radius-pill);
+            border: 1px solid;
+        }
+
+        .severity-tag.blocker { border-color: rgba(248, 113, 113, 0.85); color: #fecaca; }
+        .severity-tag.risk { border-color: rgba(250, 204, 21, 0.7); color: #fef08a; }
+
+        .ready-gap-fix { color: rgba(226, 232, 240, 0.8); }
+
+        .ready-saved {
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .step-block.step-edited .step-label::after {
+            content: "Edited";
+            margin-left: 8px;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 1px 6px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(196, 181, 253, 0.6);
+            color: #ddd6fe;
+        }
+
         .print-only {
             display: none;
         }
@@ -1347,6 +1508,10 @@
                 color: #0f172a !important;
             }
 
+            .step-block.step-edited .step-label::after {
+                display: none;
+            }
+
             .step-block + .step-block {
                 border-top-color: #cbd5e1 !important;
             }
@@ -1509,6 +1674,21 @@
                         </div>
                         <div id="prescription-sections" class="prescription-sections"></div>
                         <div id="prescription-error" class="prescription-error no-print" style="display: none;"></div>
+
+                        <div id="refine-panel" class="refine-panel no-print" style="display: none;">
+                            <div class="refine-title">Refine the plan</div>
+                            <div class="refine-caption">Ask a question or say what to change. Edits update the plan above.</div>
+                            <div id="refine-log" class="refine-log" aria-live="polite"></div>
+                            <div class="refine-input-row">
+                                <textarea id="refine-input" spellcheck="true" placeholder="e.g. Open with the HubSpot integration and add a SOC 2 point"></textarea>
+                                <button id="refine-send-btn" type="button">Send</button>
+                            </div>
+                            <div id="refine-error" class="prescription-error" style="display: none;"></div>
+                            <div class="refine-actions">
+                                <button id="ready-check-btn" type="button">Done: am I ready to demo?</button>
+                            </div>
+                            <div id="ready-result" class="ready-result" aria-live="polite"></div>
+                        </div>
                     </div>
 
                     <div id="export-cta" class="export-cta no-print">
@@ -1593,6 +1773,13 @@
         const gateList = document.getElementById('gate-list');
         const gateBackBtn = document.getElementById('gate-back-btn');
         const gateProceedBtn = document.getElementById('gate-proceed-btn');
+        const refinePanel = document.getElementById('refine-panel');
+        const refineLog = document.getElementById('refine-log');
+        const refineInput = document.getElementById('refine-input');
+        const refineSendBtn = document.getElementById('refine-send-btn');
+        const refineError = document.getElementById('refine-error');
+        const readyCheckBtn = document.getElementById('ready-check-btn');
+        const readyResult = document.getElementById('ready-result');
 
         const STATUS_LABELS = { RED: 'Missing', YELLOW: 'Thin', GREEN: 'Covered' };
         const METRICS_MESSAGES = {
@@ -1606,6 +1793,8 @@
         let currentCallBalance = null;
         let gateOverridden = false;
         let currentPrescription = null;
+        let currentDealId = null;
+        let chatHistory = [];
 
         function setLoading(mode) {
             document.body.classList.remove('loading', 'loading-meddic', 'loading-prescription');
@@ -1620,6 +1809,7 @@
             currentCallBalance = null;
             gateOverridden = false;
             currentPrescription = null;
+            resetRefine();
             hideGate();
             prescriptionCta.classList.remove('visible');
             prescriptionPanel.classList.remove('visible');
@@ -1966,7 +2156,8 @@
             return list;
         }
 
-        function renderPrescription(parsed) {
+        function renderPrescription(parsed, opts = {}) {
+            const edited = new Set(opts.changed || []);
             currentPrescription = parsed;
             prescriptionSections.innerHTML = '';
             prescriptionError.style.display = 'none';
@@ -1997,7 +2188,7 @@
                         const wrap = document.createElement('div');
                         parsed.demo_prescription.forEach((step, i) => {
                             const block = document.createElement('div');
-                            block.className = 'step-block';
+                            block.className = 'step-block' + (edited.has(step.step) ? ' step-edited' : '');
                             const label = document.createElement('div');
                             label.className = 'step-label';
                             label.textContent = `${i + 1}. ${step.step}`;
@@ -2041,13 +2232,20 @@
                 card.appendChild(body);
                 prescriptionSections.appendChild(card);
 
-                setTimeout(() => {
+                if (opts.instant) {
                     card.classList.add('visible');
-                }, 120 + index * 180);
+                } else {
+                    setTimeout(() => {
+                        card.classList.add('visible');
+                    }, 120 + index * 180);
+                }
             });
 
             prescriptionPanel.classList.add('visible');
-            prescriptionPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            refinePanel.style.display = 'block';
+            if (!opts.instant) {
+                prescriptionPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
             setTimeout(() => {
                 exportCta.classList.add('visible');
             }, 280);
@@ -2089,6 +2287,8 @@
                     throw new Error(data.error || 'Request failed');
                 }
 
+                resetRefine();
+                currentDealId = data.deal_id || null;
                 renderPrescription(data.result);
             } catch (err) {
                 console.error(err);
@@ -2098,6 +2298,167 @@
             } finally {
                 setLoading(null);
                 prescriptionBtn.disabled = false;
+            }
+        }
+
+        function resetRefine() {
+            currentDealId = null;
+            chatHistory = [];
+            refineLog.innerHTML = '';
+            refineInput.value = '';
+            refineError.style.display = 'none';
+            readyResult.className = 'ready-result';
+            readyResult.innerHTML = '';
+            refinePanel.style.display = 'none';
+        }
+
+        function addChatMessage(role, text, note) {
+            const msg = document.createElement('div');
+            msg.className = `refine-msg ${role}`;
+            msg.textContent = text;
+            if (note) {
+                const small = document.createElement('span');
+                small.className = 'edited-note';
+                small.textContent = note;
+                msg.appendChild(small);
+            }
+            refineLog.appendChild(msg);
+            refineLog.scrollTop = refineLog.scrollHeight;
+            return msg;
+        }
+
+        function setRefineBusy(busy) {
+            refineSendBtn.disabled = busy;
+            readyCheckBtn.disabled = busy;
+            refineInput.disabled = busy;
+        }
+
+        async function sendRefine() {
+            const text = refineInput.value.trim();
+            if (!text || !currentPrescription) return;
+
+            refineError.style.display = 'none';
+            chatHistory.push({ role: 'user', content: text });
+            addChatMessage('user', text);
+            refineInput.value = '';
+            const pending = addChatMessage('assistant pending', 'Thinking…');
+            setRefineBusy(true);
+
+            try {
+                const res = await fetch('/refine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        meddic: currentMeddic,
+                        call_balance: currentCallBalance,
+                        prescription: currentPrescription,
+                        messages: chatHistory
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                const result = data.result;
+                pending.remove();
+                chatHistory.push({ role: 'assistant', content: result.reply });
+                const changed = result.changed_steps || [];
+                addChatMessage('assistant', result.reply,
+                    changed.length ? `Edited: ${changed.join(', ')}` : '');
+                if (changed.length || JSON.stringify(result.prescription.deal_overview) !== JSON.stringify(currentPrescription.deal_overview)) {
+                    renderPrescription(result.prescription, { changed, instant: true });
+                    readyResult.className = 'ready-result';
+                    readyResult.innerHTML = '';
+                }
+            } catch (err) {
+                console.error(err);
+                pending.remove();
+                // Drop the unanswered turn so the next message keeps the history valid.
+                chatHistory.pop();
+                refineInput.value = text;
+                refineError.textContent = 'Error: ' + err.message;
+                refineError.style.display = 'block';
+            } finally {
+                setRefineBusy(false);
+                refineInput.focus();
+            }
+        }
+
+        function renderReadyCheck(check, saved) {
+            readyResult.innerHTML = '';
+            readyResult.className = 'ready-result visible ' + (check.ready ? 'is-ready' : 'not-ready');
+
+            const headline = document.createElement('div');
+            headline.className = 'ready-headline';
+            headline.textContent = check.ready
+                ? (check.gaps.length ? 'Ready to demo, with a few risks to tidy up' : 'Ready to demo')
+                : 'Not ready to demo yet';
+            readyResult.appendChild(headline);
+
+            check.gaps.forEach((gap) => {
+                const item = document.createElement('div');
+                item.className = 'ready-gap';
+                const head = document.createElement('div');
+                head.className = 'ready-gap-head';
+                const tag = document.createElement('span');
+                tag.className = `severity-tag ${gap.severity}`;
+                tag.textContent = gap.severity;
+                head.appendChild(tag);
+                head.appendChild(document.createTextNode(gap.area));
+                const issue = document.createElement('div');
+                issue.textContent = gap.issue;
+                item.appendChild(head);
+                item.appendChild(issue);
+                if (gap.fix) {
+                    const fix = document.createElement('div');
+                    fix.className = 'ready-gap-fix';
+                    fix.textContent = 'Fix: ' + gap.fix;
+                    item.appendChild(fix);
+                }
+                readyResult.appendChild(item);
+            });
+
+            const notes = [];
+            if (saved) notes.push('Final plan saved to this deal.');
+            if (check.warnings && check.warnings.length) notes.push('The AI review was unavailable, so only the rule checks ran.');
+            if (notes.length) {
+                const note = document.createElement('div');
+                note.className = 'ready-saved';
+                note.textContent = notes.join(' ');
+                readyResult.appendChild(note);
+            }
+        }
+
+        async function runReadyCheck() {
+            if (!currentPrescription) return;
+            refineError.style.display = 'none';
+            setRefineBusy(true);
+            readyCheckBtn.textContent = 'Checking…';
+
+            try {
+                const res = await fetch('/ready-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        deal_id: currentDealId,
+                        meddic: currentMeddic,
+                        prescription: currentPrescription
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+                renderReadyCheck(data.result, data.saved);
+                readyResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (err) {
+                console.error(err);
+                refineError.textContent = 'Error: ' + err.message;
+                refineError.style.display = 'block';
+            } finally {
+                readyCheckBtn.textContent = 'Done: am I ready to demo?';
+                setRefineBusy(false);
             }
         }
 
@@ -2118,6 +2479,14 @@
             runPrescription();
         });
         exportPdfBtn.addEventListener('click', runExportPdf);
+        refineSendBtn.addEventListener('click', sendRefine);
+        readyCheckBtn.addEventListener('click', runReadyCheck);
+        refineInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendRefine();
+            }
+        });
 
         notesEl.addEventListener('keydown', (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'enter') {
